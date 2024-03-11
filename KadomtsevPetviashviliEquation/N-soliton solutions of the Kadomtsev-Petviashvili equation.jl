@@ -175,48 +175,48 @@ show_tau_and_gif_sol_AB(sol, k, P, xs, ys, ts; fn="AB_FIG5.gif", disp=true)
 # %%
 k, P = [1.0, 2.0, 3.0], [-0.333, -0.667, -1.667]
 sol = make_soliton_solution_AB(k, P)
-xs = range(-25, 25, 251)
-ys = range(-25, 50, 251)
+xs = range(-25, 25, 501)
+ys = range(-25, 50, 501)
 ts = range(-25, 25, 201)
 show_tau_and_gif_sol_AB(sol, k, P, xs, ys, ts; fn="AB_FIG6.gif")
 
 # %%
 k, P = [1.0, 2.0, 3.0], [-0.333, -0.667, -1.66]
 sol = make_soliton_solution_AB(k, P)
-xs = range(-25, 25, 251)
-ys = range(-25, 50, 251)
+xs = range(-25, 25, 501)
+ys = range(-25, 50, 501)
 ts = range(-25, 25, 201)
 show_tau_and_gif_sol_AB(sol, k, P, xs, ys, ts; fn="3-soliton_a.gif")
 
 # %%
 k, P = [1.0, 2.0, 3.0], [-0.333, -0.667, -1.5]
 sol = make_soliton_solution_AB(k, P)
-xs = range(-25, 25, 251)
-ys = range(-25, 50, 251)
+xs = range(-25, 25, 501)
+ys = range(-25, 50, 501)
 ts = range(-25, 25, 201)
 show_tau_and_gif_sol_AB(sol, k, P, xs, ys, ts; fn="3-soliton_b.gif")
 
 # %%
 k, P = [0.5, 1.0, 2.3], [0.75, 0.25, -1.0]
 sol = make_soliton_solution_AB(k, P)
-xs = range(-25, 25, 251)
-ys = range(-25, 50, 251)
+xs = range(-25, 25, 501)
+ys = range(-25, 50, 501)
 ts = range(-25, 25, 201)
 show_tau_and_gif_sol_AB(sol, k, P, xs, ys, ts; fn="3-soliton_c.gif")
 
 # %%
 k, P = [0.5, 1.0, 1.5], [0.75, 0.25, -0.25]
 sol = make_soliton_solution_AB(k, P)
-xs = range(-25, 25, 251)
-ys = range(-25, 50, 251)
+xs = range(-25, 25, 501)
+ys = range(-25, 50, 501)
 ts = range(-25, 50, 201)
 show_tau_and_gif_sol_AB(sol, k, P, xs, ys, ts; fn="3-soliton_d.gif")
 
 # %%
 k, P = [0.5, 1.0, 2.25], [0.75, 0.25, -1.0]
 sol = make_soliton_solution_AB(k, P)
-xs = range(-25, 25, 251)
-ys = range(-25, 50, 251)
+xs = range(-25, 25, 501)
+ys = range(-25, 50, 501)
 ts = range(-25, 25, 201)
 show_tau_and_gif_sol_AB(sol, k, P, xs, ys, ts; fn="3-soliton_e.gif")
 
