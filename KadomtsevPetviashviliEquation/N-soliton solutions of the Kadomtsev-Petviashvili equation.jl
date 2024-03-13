@@ -17,7 +17,53 @@
 # %% [markdown]
 # # KP方程式のN-soliton解
 #
+# * 黒木玄
+# * 2024-03-13
+#
 # See https://arxiv.org/abs/1208.2904
+
+# %% [markdown]
+# ## KP方程式の広田型N-soliton解の公式
+#
+# 与えるデータ: $u_i$, $v_i$, $c_i$ ($i=1,\ldots, N$)
+#
+# 独立変数: $t = (t_1, t_2, t_3, \ldots)$
+#
+# $\tau$ 函数:
+#
+# $$
+# \tau(t) = \sum_{n=0}^N \sum_{1\le i_1<i_2<\cdots<i_n\le N}
+# \prod_{1\le\mu<\nu\le n}\frac{(u_{i_\mu} - u_{i_\nu})(v_{i_\mu} - v_{i_\nu})}{(u_{i_\mu} - v_{i_\nu})(v_{i_\mu} - u_{i_\nu})}
+# \prod_{\nu=1}^n c_{i_\nu} \exp\left(\sum_{m=1}^\infty (v_{i_\nu}^m - u_{i_\nu}^m) t_m\right).
+# $$
+#
+# $n=0$ の項は $1$ であることに注意せよ.
+#
+# 簡単のため $t_1=x$, $t_2=y$, $t_3 = t$, $t_m=0$ ($m\ge 4$) とおく. そのとき,
+#
+# $$
+# (D_x^4 + 3D_y^4 -4D_x D_t)\tau\bullet\tau = 0
+# $$
+#
+# が成立している. ここで, $D$ 達は次のように定義される広田の$D$-operatorである:
+#
+# $$
+# D_x^k f(x) \bullet g(x) =
+# \left.\left(\frac{\partial}{\partial\varepsilon}\right)^k\,\right|_{\varepsilon=0} f(x+\varepsilon)g(x-\varepsilon) =
+# \sum_{i=0}^k (-1)^{k-i}\binom{k}{i} f^{(i)}(x) g^{(k-i)}(x).
+# $$
+#
+# このことから,
+#
+# $$
+# u = 2\left(\frac{\partial}{\partial x}\right)^2 \log\tau
+# $$
+#
+# とおくと, $u$ は次のKadomtsev-Petviashvili方程式を満たしていることが導かれる:
+#
+# $$
+# \frac{\partial}{\partial x}\left(u_t - \frac{3}{2}uu_x - \frac{1}{4}u_{xxx}\right) - \frac{3}{4}u_{yy} = 0
+# $$
 
 # %%
 using Combinatorics
@@ -34,21 +80,25 @@ _eta(u, v, x, y, t) = (v - u) * x + (v^2 - u^2) * y + (v^3 - u^3) * t
 
 function _soliton_exp_factor(u, v, c, i, x, y, t)
     n = length(i)
-    C = prod(c[i[k]] for k in 1:n; init=1.0)
-    E = sum(_eta(u[i[k]], v[i[k]], x, y, t) for k in 1:n; init=0.0)
-    C * exp(E)
+    prod_of_cs = prod(c[i[ν]] for ν in 1:n; init=1.0)
+    sum_of_etas = sum(_eta(u[i[ν]], v[i[ν]], x, y, t) for ν in 1:n; init=0.0)
+    prod_of_cs * exp(sum_of_etas)
 end
 
 function _soliton_tau_term(u, v, c, i, x, y, t)
     n = length(i)
-    A = prod((u[i[k]] - u[i[l]]) * (v[i[k]] - v[i[l]]) /
-        ((u[i[k]] - v[i[l]]) * (v[i[k]] - u[i[l]])) for k in 1:n for l in k+1:n; init=1.0)
+    A = prod((u[i[μ]] - u[i[ν]]) * (v[i[μ]] - v[i[ν]]) / ((u[i[μ]] - v[i[ν]]) * (v[i[μ]] - u[i[ν]]))
+            for μ in 1:n for ν in μ+1:n; init=1.0)
     A * _soliton_exp_factor(u, v, c, i, x, y, t)
 end
 
-function make_soliton_tau(u, v, c)
+function _soliton_tau(u, v, c, x, y, t)
     N = length(c)
-    tau(x, y, t) = sum(_soliton_tau_term(u, v, c, i, x, y, t) for n in 0:N for i in combinations(1:N, n))
+    sum(_soliton_tau_term(u, v, c, i, x, y, t) for n in 0:N for i in combinations(1:N, n))
+end
+
+function make_soliton_tau(u, v, c)
+    tau(x, y, t) = _soliton_tau(u, v, c, x, y, t)
     tau
 end
 
@@ -67,9 +117,8 @@ function tau2sol(tau)
 end
 
 function _make_soliton_solution(u, v, c)
-    _tau =  make_soliton_tau(u, v, c)
     @syms x y t
-    τ = _tau(x, y, t)
+    τ = _soliton_tau(u, v, c, x, y, t)
     τ_x = sympy.diff(τ, x)
     τ_xx = sympy.diff(τ_x, x)
     tau = eval(Meta.parse("(x, y, t) -> $τ"))
