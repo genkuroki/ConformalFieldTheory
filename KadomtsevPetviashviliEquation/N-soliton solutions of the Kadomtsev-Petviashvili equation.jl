@@ -69,10 +69,13 @@
 using Combinatorics
 using ForwardDiff
 using Plots
-default(fmt=:png, colorbar=false)
-cg = cgrad(:gist_earth)
-color = cgrad(cg.colors, cg.values .^ 2)
+default(fmt=:png, colorbar=false, tickfontsize=6)
 using SymPy
+
+function rescale_cgrad(x; f=x->x^2)
+    cg = cgrad(x)
+    cgrad(cg.colors, f.(cg.values))
+end
 
 nan2zero(x) = isnan(x) ? zero(x) : x
 
@@ -133,7 +136,49 @@ make_soliton_solution(u, v) = make_soliton_solution(u, v, ones(length(u)))
 make_soliton_solution_AB(k, P, c) = make_soliton_solution((P-k)/2, (P+k)/2, c)
 make_soliton_solution_AB(k, P) = make_soliton_solution_AB(k, P, ones(length(k)))
 
-function show_tau_and_gif_sol(sol, u, v, xs, ys, ts; fn="tmp.gif", fps=20, disp=false, color=color)
+function plot_sol_heatmap(sol, xs, ys, t; color=rescale_cgrad(:gist_earth))
+    solmax = maximum(nan2zero(sol(x, y, t)) for x in xs, y in ys)
+    heatmap(xs, ys, (x, y) -> sol(x, y, t); colorbar=false, color)
+    plot!(; xguide="x", yguide="y")
+    plot!(; clim=(-0.01solmax, solmax))
+    plot!(; size=(300, 300))
+end
+    
+function gif_sol_heatmap(sol, xs, ys, ts;
+        fn="tmp.gif", fps=20, color=rescale_cgrad(:gist_earth)
+    )
+    solmax = maximum(nan2zero(sol(x, y, t)) for x in xs, y in ys, t in ts)
+    anim = @animate for t in ts
+        heatmap(xs, ys, (x, y) -> sol(x, y, t); colorbar=false, color)
+        plot!(; xguide="x", yguide="y")
+        plot!(; clim=(-0.01solmax, solmax))
+        plot!(; size=(300, 300))
+    end
+    gif(anim, fn; fps)
+end
+
+function plot_sol_3d(sol, xs, ys, t; color=rescale_cgrad(:gist_earth))
+    solmax = maximum(nan2zero(sol(x, y, t)) for x in xs, y in ys)
+    surface(xs, ys, (x, y) -> sol(x, y, t); camera=(15, 80), colorbar=false, color)
+    plot!(; xguide="x", yguide="y", zguide="u")
+    plot!(; zlim=(-0.01solmax, solmax))
+    plot!(; size=(400, 400), margin=-20Plots.mm)
+end
+
+function gif_sol_3d(sol, xs, ys, ts;
+        fn="tmp.gif", fps=20, color=rescale_cgrad(:gist_earth)
+    )
+    solmax = maximum(nan2zero(sol(x, y, t)) for x in xs, y in ys, t in ts)
+    anim = @animate for t in ts
+        surface(xs, ys, (x, y) -> sol(x, y, t); camera=(15, 80), colorbar=false, color)
+        plot!(; xguide="x", yguide="y", zguide="u")
+        plot!(; zlim=(-0.01solmax, solmax))
+        plot!(; size=(400, 400), margin=-20Plots.mm)
+    end
+    gif(anim, fn; fps)
+end
+
+function show_tau(u, v; disp=false)
     @syms x y t
     tau = make_soliton_tau(u, v)
     if disp
@@ -142,22 +187,27 @@ function show_tau_and_gif_sol(sol, u, v, xs, ys, ts; fn="tmp.gif", fps=20, disp=
     else
         @show tau(x, y, t)
     end
-    flush(stdout)
     
-    solmax = maximum(nan2zero(sol(x, y, t)) for x in xs, y in ys, t in ts)
-    anim = @animate for t in ts
-        surface(xs, ys, (x, y) -> sol(x, y, t); camera=(15, 80), colorbar=false, color)
-        plot!(xguide="x", yguide="y", zguide="u")
-        plot!(size=(600, 600))
-        plot!(zlim=(-0.01solmax, solmax))
-        plot!(margin=-10Plots.mm)
-    end
-
-    gif(anim, fn; fps)    
 end
 
-show_tau_and_gif_sol_AB(sol, k, P, xs, ys, ts; fn="tmp.gif", fps=20, disp=false) =
-    show_tau_and_gif_sol(sol, (P+k)/2, (P-k)/2, xs, ys, ts; fn, fps, disp)
+function show_tau_and_gif_sol(sol, u, v, xs, ys, ts;
+        fn="tmp", fps=20, color=rescale_cgrad(:gist_earth),
+        disp=false
+    )
+    show_tau(u, v; disp)
+    flush(stdout)
+    
+    gif_sol_3d(sol, xs, ys, ts; fn, fps, color) |> display
+    plot_sol_3d(sol, xs, ys, 0.0; color) |> display
+    gif_sol_heatmap(sol, xs, ys, ts;
+        fn=replace(fn, r"\.gif"=>"_heatmap.gif"), fps, color) |> display
+    plot_sol_heatmap(sol, xs, ys, 0.0; color)
+end
+
+show_tau_and_gif_sol_AB(sol, k, P, xs, ys, ts;
+        fn="tmp.gif", fps=20, color=rescale_cgrad(:gist_earth),
+        disp=false) =
+    show_tau_and_gif_sol(sol, (P-k)/2, (P+k)/2, xs, ys, ts; fn, fps, color, disp)
 
 # %%
 u, v = [1.0], [-0.8]
@@ -225,48 +275,48 @@ show_tau_and_gif_sol_AB(sol, k, P, xs, ys, ts; fn="AB_FIG5.gif", disp=true)
 # %%
 k, P = [1.0, 2.0, 3.0], [-0.333, -0.667, -1.667]
 sol = make_soliton_solution_AB(k, P)
-xs = range(-25, 25, 501)
-ys = range(-25, 50, 501)
+xs = range(-25, 25, 251)
+ys = range(-25, 50, 251)
 ts = range(-25, 25, 201)
 show_tau_and_gif_sol_AB(sol, k, P, xs, ys, ts; fn="AB_FIG6.gif")
 
 # %%
 k, P = [1.0, 2.0, 3.0], [-0.333, -0.667, -1.66]
 sol = make_soliton_solution_AB(k, P)
-xs = range(-25, 25, 501)
-ys = range(-25, 50, 501)
+xs = range(-25, 25, 251)
+ys = range(-25, 50, 251)
 ts = range(-25, 25, 201)
 show_tau_and_gif_sol_AB(sol, k, P, xs, ys, ts; fn="3-soliton_a.gif")
 
 # %%
 k, P = [1.0, 2.0, 3.0], [-0.333, -0.667, -1.5]
 sol = make_soliton_solution_AB(k, P)
-xs = range(-25, 25, 501)
-ys = range(-25, 50, 501)
+xs = range(-25, 25, 251)
+ys = range(-25, 50, 251)
 ts = range(-25, 25, 201)
 show_tau_and_gif_sol_AB(sol, k, P, xs, ys, ts; fn="3-soliton_b.gif")
 
 # %%
 k, P = [0.5, 1.0, 2.3], [0.75, 0.25, -1.0]
 sol = make_soliton_solution_AB(k, P)
-xs = range(-25, 25, 501)
-ys = range(-25, 50, 501)
+xs = range(-25, 25, 251)
+ys = range(-25, 50, 251)
 ts = range(-25, 25, 201)
 show_tau_and_gif_sol_AB(sol, k, P, xs, ys, ts; fn="3-soliton_c.gif")
 
 # %%
 k, P = [0.5, 1.0, 1.5], [0.75, 0.25, -0.25]
 sol = make_soliton_solution_AB(k, P)
-xs = range(-25, 25, 501)
-ys = range(-25, 50, 501)
+xs = range(-25, 25, 251)
+ys = range(-25, 50, 251)
 ts = range(-25, 50, 201)
 show_tau_and_gif_sol_AB(sol, k, P, xs, ys, ts; fn="3-soliton_d.gif")
 
 # %%
 k, P = [0.5, 1.0, 2.25], [0.75, 0.25, -1.0]
 sol = make_soliton_solution_AB(k, P)
-xs = range(-25, 25, 501)
-ys = range(-25, 50, 501)
+xs = range(-25, 25, 251)
+ys = range(-25, 50, 251)
 ts = range(-25, 25, 201)
 show_tau_and_gif_sol_AB(sol, k, P, xs, ys, ts; fn="3-soliton_e.gif")
 
