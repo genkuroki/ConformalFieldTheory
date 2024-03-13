@@ -24,12 +24,13 @@ using Combinatorics
 using ForwardDiff
 using Plots
 default(fmt=:png, colorbar=false)
-color = :gist_earth
+cg = cgrad(:gist_earth)
+color = cgrad(cg.colors, cg.values .^ 2)
 using SymPy
 
 nan2zero(x) = isnan(x) ? zero(x) : x
 
-_eta(u, v, x, y, t) = (u - v) * x + (u^2 - v^2) * y + (u^3 - v^3) * t
+_eta(u, v, x, y, t) = (v - u) * x + (v^2 - u^2) * y + (v^3 - u^3) * t
 
 function _soliton_exp_factor(u, v, c, i, x, y, t)
     n = length(i)
@@ -52,7 +53,7 @@ function make_soliton_tau(u, v, c)
 end
 
 make_soliton_tau(u, v) = make_soliton_tau(u, v, ones(length(u)))
-make_soliton_tau_AB(k, P, c) = make_soliton_tau((P+k)/2, (P-k)/2, c)
+make_soliton_tau_AB(k, P, c) = make_soliton_tau((P-k)/2, (P+k)/2, c)
 make_soliton_tau_AB(k, P) = make_soliton_tau_AB(k, P, ones(length(k)))
 
 first_derivative(f, x) = ForwardDiff.derivative(f, x)
@@ -80,10 +81,10 @@ end
 
 make_soliton_solution(u, v, c) = _make_soliton_solution(u, v, c).sol
 make_soliton_solution(u, v) = make_soliton_solution(u, v, ones(length(u)))
-make_soliton_solution_AB(k, P, c) = make_soliton_solution((P+k)/2, (P-k)/2, c)
-make_soliton_solution_AB(k, P) = make_soliton_solution((P+k)/2, (P-k)/2, ones(length(k)))
+make_soliton_solution_AB(k, P, c) = make_soliton_solution((P-k)/2, (P+k)/2, c)
+make_soliton_solution_AB(k, P) = make_soliton_solution_AB(k, P, ones(length(k)))
 
-function show_tau_and_gif_sol(sol, u, v, xs, ys, ts; fn="tmp.gif", fps=20, disp=false)
+function show_tau_and_gif_sol(sol, u, v, xs, ys, ts; fn="tmp.gif", fps=20, disp=false, color=color)
     @syms x y t
     tau = make_soliton_tau(u, v)
     if disp
@@ -99,7 +100,7 @@ function show_tau_and_gif_sol(sol, u, v, xs, ys, ts; fn="tmp.gif", fps=20, disp=
         surface(xs, ys, (x, y) -> sol(x, y, t); camera=(15, 80), colorbar=false, color)
         plot!(xguide="x", yguide="y", zguide="u")
         plot!(size=(600, 600))
-        plot!(zlim=(-0.02solmax, 1.05solmax))
+        plot!(zlim=(-0.01solmax, solmax))
         plot!(margin=-10Plots.mm)
     end
 
@@ -114,9 +115,9 @@ u, v = [1.0], [-0.8]
 
 @syms x y t
 tau = make_soliton_tau(u, v)
-2SymPy.diff(log(tau(x, y, t)), x, x).simplify() |> display
+2SymPy.diff(log(tau(x, y, t)), x, x).factor() |> display
 sol = make_soliton_solution(u, v)
-sol(x, y, t).simplify() |> display
+sol(x, y, t).factor() |> display
 
 sol = make_soliton_solution(u, v)
 xs = range(-25, 25, 251)
