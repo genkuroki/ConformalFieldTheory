@@ -1,0 +1,8 @@
+clear z,l,h1,h2,h3;
+operator z,l;
+noncom z,l;
+for all x,m let l(m)*z(x)=-(x+h2*(m+1))*z(x+m);
+for all x,m let z(x)*l(m)=(x+h2*(m+1))*z(x+m);
+x:=h1+h2-h3;
+;end;
+
