@@ -90,23 +90,23 @@ procedure kacmat(d); begin
   basis_r := monomials(d);
   basis_l := dualmonomials(d);
   N := length(basis_r);
-  matrix x(N, N);
+  matrix km(N, N);
   j := 0;
   k := 0;
   for each ll_r in basis_r do <<
     k := k + 1;
     for each ll_l in basis_l do <<
       j := j + 1;
-      x(j, k) := vec(h) * ll_l * ll_r * vec(h);
+      km(j, k) := vec(h) * ll_l * ll_r * vec(h);
     >>;
     j := 0;
   >>;
-  return x;
+  return km;
 end;
 
 procedure kacdet(d); begin
-  x := kacmat(d);
-  return det(x);
+  km := kacmat(d);
+  return det(km);
 end;
 
 procedure kacdet_t(d, tau); begin
@@ -146,12 +146,6 @@ procedure f_ff(r0, s0, r1, s1, h2, tau); begin
   h0 := conformalweight(r0, s0, tau);
   h1 := conformalweight(r1, s1, tau);
   return g_ff(r1, s1, h0, h0 + h1 - h2, tau);
-end;
-
-procedure f_ff0(r0, s0, r1, s1, h2, tau); begin
-  h0 := conformalweight(r0, s0, tau);
-  h1 := conformalweight(r1, s1, tau);
-  return g_ff(r0, s0, h1, h0 + h1 - h2, tau);
 end;
 
 procedure f_ff_fact(r0, s0, r1, s1, h2, tau); begin
