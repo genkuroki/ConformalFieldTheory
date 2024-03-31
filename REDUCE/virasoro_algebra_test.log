@@ -532,6 +532,13 @@ conformalweight(r, s, tau);
 tau  *( - ---*tau *s  + ---*tau  - ---*tau*r*s + ---*tau - ---*r  + ---)
            4             4          2             2         4        4
 
+cw(r, s, tau);
+
+
+   -1      1     2  2    1     2    1             1         1   2    1
+tau  *( - ---*tau *s  + ---*tau  - ---*tau*r*s + ---*tau - ---*r  + ---)
+           4             4          2             2         4        4
+
 
 partitions(5);
 

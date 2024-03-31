@@ -34,6 +34,7 @@ vec(h)*vec(h);
 
 centralcharge(tau);
 conformalweight(r, s, tau);
+cw(r, s, tau);
 
 partitions(5);
 partnum(5);
