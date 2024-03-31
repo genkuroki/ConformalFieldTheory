@@ -61,6 +61,14 @@ singvec(2, 2, tau);
 proj12(singvec(2, 2, tau));
 proj12_fact(singvec(2, 2, tau));
 
+proj12_fact(singvec(1, 1, tau));
+proj12_fact(singvec(1, 2, tau));
+proj12_fact(singvec(1, 3, tau));
+proj12_fact(singvec(1, 4, tau));
+proj12_fact(singvec(1, 5, tau));
+proj12_fact(singvec(1, 6, tau));
+proj12_fact(singvec(1, 7, tau));
+
 act_ff(l(-3), h0, h0+h1-h2);
 factorize(act_ff(l(-2)*l(-1), h0, h0+h1-h2));
 factorize(act_ff(l(-1)^3, h0, h0+h1-h2));
