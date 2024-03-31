@@ -17,6 +17,8 @@ for all m let vecproj()*l(m) = if m < -2 then 0 else if m = -1 then z1*vecproj()
 for all h, gamma, epsilon let vecf(h, gamma)*vecf(h, epsilon) = 1;
 for all m, h, gamma let l(m)*vecf(h, gamma) = -(-gamma + h*(m+1)) * vecf(h, gamma - m);
 
+procedure commutator(x, y); x*y - y*x;
+
 procedure centralcharge(tau); 6/tau + 13 + 6*tau;
 procedure conformalweight(r, s, tau) = (1-r**2)/(4*tau) + (1-r*s)/2 + (1-s**2)/4*tau;
 procedure cw(r, s, tau); conformalweight(r, s, tau);
@@ -38,6 +40,45 @@ procedure monomial(p); for each m in p product l(-m);
 procedure monomials(d); for each p in partitions(d) collect monomial(p);
 procedure dualmonomial(p); for each m in reverse(p) product l(m);
 procedure dualmonomials(d); for each p in partitions(d) collect dualmonomial(p);
+
+procedure kacmat(d); begin
+  scalar basis_r := monomials(d);
+  scalar basis_l := dualmonomials(d);
+  scalar N := partnum(d);
+  scalar j := 0;
+  scalar k := 0;
+  matrix kac_matrix(N, N);
+  for each ll_r in basis_r do <<
+    k := k + 1;
+    for each ll_l in basis_l do <<
+      j := j + 1;
+      kac_matrix(j, k) := vec(h) * ll_l * ll_r * vec(h);
+    >>;
+    j := 0;
+  >>;
+  return kac_matrix;
+end;
+
+procedure kacdet(d); begin
+  kac_matrix := kacmat(d);
+  return det(kac_matrix);
+end;
+
+procedure kacdet_t(d, tau); sub(c = centralcharge(tau), kacdet(d));
+
+procedure kacdet_t_rhs(d, tau); begin
+  return for r := 1:d product for s := 1:d product (h - cw(r, s, tau))^partnum(d - r*s);
+end;
+
+procedure kacdet_fact(d, tau); begin
+  scalar kd := kacdet_t(d, tau);
+  return {num = factorize(num(kd)), den = den(kd)};
+end;
+
+procedure kacdet_sol(d, tau); begin
+  scalar kd := kacdet_t(d, tau);
+  return solve(kd, h)
+end;
 
 procedure lincomb(n); begin
   scalar j := -1;
@@ -85,36 +126,6 @@ procedure singvec(r, s, tau); begin
   return sub(first(sol), sing)
 end;
 
-procedure kacmat(d); begin
-  scalar basis_r := monomials(d);
-  scalar basis_l := dualmonomials(d);
-  scalar N := partnum(d);
-  scalar j := 0;
-  scalar k := 0;
-  matrix kac_matrix(N, N);
-  for each ll_r in basis_r do <<
-    k := k + 1;
-    for each ll_l in basis_l do <<
-      j := j + 1;
-      kac_matrix(j, k) := vec(h) * ll_l * ll_r * vec(h);
-    >>;
-    j := 0;
-  >>;
-  return kac_matrix;
-end;
-
-procedure kacdet(d); begin
-  kac_matrix := kacmat(d);
-  return det(kac_matrix);
-end;
-
-procedure kacdet_t(d, tau); sub(c = centralcharge(tau), kacdet(d));
-
-procedure kacdet_fact(d, tau); begin
-  scalar kd := kacdet_t(d, tau);
-  return {num = factorize(num(kd)), den = den(kd)};
-end;
-
 procedure proj12(s); begin
   scalar sp := vecproj() * s;
   return vecproj() * sp;
@@ -141,6 +152,10 @@ procedure f_ff(r0, s0, r1, s1, h2, tau); begin
   scalar h0 := conformalweight(r0, s0, tau);
   scalar h1 := conformalweight(r1, s1, tau);
   return g_ff(r1, s1, h0, h0 + h1 - h2, tau);
+end;
+
+procedure f_ff_rhs(r0, s0, r1, s1, h2, tau); begin
+  return for i := 1:r1 product for j := 1:s1 product h2 - cw(r0+r1-2*i+1, s0+s1-2*j+1, tau);
 end;
 
 procedure f_ff_fact(r0, s0, r1, s1, h2, tau); begin
