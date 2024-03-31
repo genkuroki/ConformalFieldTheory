@@ -1,11 +1,12 @@
 on rat;
 on div;
 
-clear delta, c, h, x, z, tau, l, vec, vecproj, gamma, vecf;
-order h, c, x, z, tau, l;
+clear delta, c, h, x, z, tau, theta, l, vec, vecproj, gamma, vecf;
+order h, c, x, z, theta, tau, l;
 operator delta, l, vec, vecproj;
 noncom l, vec, vec_proj, vecf;
 factor l, vec, gamma, vecf;
+let theta**2 = tau;
 for all m let delta(m) = if m = 0 then 1 else 0;
 for all m, n such that m > n let l(m)*l(n) = l(n)*l(m) + (m-n)*l(m+n) + c*(m**3-m)*delta(m+n)/12;
 for all h let vec(h)**2 = 1;
@@ -148,6 +149,32 @@ procedure g_ff(r, s, h, gamma, tau); begin
   return act_ff(sing, h, gamma);
 end;
 
+procedure g_ff_factor(k, l, a, b, h, gamma); begin
+  return (gamma^2 
+    + ((2*a*(k-a)+k)/theta^2 + (2*b*(l-b)+l)*theta^2 + k*l+k+l-(k-2*a)*(l-2*b)) * gamma
+    + ((k-2*a)/theta + (l-2*b)*theta)^2 * h
+    + (a/theta + b*theta) * ((a+1)/theta + (b+1)*theta) *
+      ((k-a)/theta + (l-b)*theta) * ((k-a+1)/theta + (l-b+1)*theta)
+  );
+end;
+
+procedure g_ff_factor_lhs(r0, s0, r1, s1, h2, i1, j1); begin
+  scalar k := r1 - 1; 
+  scalar l := s1 - 1; 
+  scalar a := i1 - 1; 
+  scalar b := j1 - 1;
+  scalar h := cw(r0, s0, tau);
+  scalar gamma := cw(r0, s0, tau) + cw(r1, s1, tau) - h2;
+  return g_ff_factor(k, l, a, b, h, gamma);
+end;
+
+procedure g_ff_factor_rhs(r0, s0, r1, s1, h2, i1, j1); begin
+  return (
+    (h2 - cw(r0+r1+1-2*i1, s0+s1+1-2*j1, tau)) *
+    (h2 - cw(r0-(r1+1-2*i1), s0-(s1+1-2*j1), tau))
+  );
+end;
+
 procedure f_ff(r0, s0, r1, s1, h2, tau); begin
   scalar h0 := conformalweight(r0, s0, tau);
   scalar h1 := conformalweight(r1, s1, tau);
@@ -155,7 +182,9 @@ procedure f_ff(r0, s0, r1, s1, h2, tau); begin
 end;
 
 procedure f_ff_rhs(r0, s0, r1, s1, h2, tau); begin
-  return for i := 1:r1 product for j := 1:s1 product h2 - cw(r0+r1-2*i+1, s0+s1-2*j+1, tau);
+  return ((-1)^(r1*s1) *
+    (for i1 := 1:r1 product for j1 := 1:s1 product h2 - cw(r0+r1+1-2*i1, s0+s1+1-2*j1, tau))
+  );
 end;
 
 procedure f_ff_fact(r0, s0, r1, s1, h2, tau); begin
