@@ -8,6 +8,25 @@ on div;
 
 
 
+% [FF] B. L. Feigin & D. B. Fuchs, Verma modules over the virasoro algebra
+% Lecture Notes in Mathematics, Volume 1060, 1984, pp. 230--245,
+% Topology,
+% General and Algebraic Topology and Applications,
+% Proceedings of the International Topological Conference held in Leningrad, August 23-27, 1983
+
+% delta - Knonecker's delta (delta(m) = if m = 0 then 1 else 0)
+% c - central charge
+% h - conformal weight
+% x - unknowns
+% z - unknowns
+% tau - Use t instead of t because t is the symbol for true in REDUCE
+% theta - theta^2 = tau
+% l - generators of the Virasoro algebra
+% vec - ket |h> or bra <h| vector
+% vecproj - L(m)*vevproj() = 0 if m < -2
+% gamma - mu + 2h of [FF]
+% vecf - w^{-gamma}
+
 clear delta, c, h, x, z, tau, theta, l, vec, vecproj, gamma, vecf;
 
 
@@ -21,6 +40,7 @@ noncom l, vec, vec_proj, vecf;
 
 
 factor l, vec, gamma, vecf;
+
 
 
 let theta**2 = tau;
@@ -62,23 +82,23 @@ for all m, h, gamma let l(m)*vecf(h, gamma) = -(-gamma + h*(m+1)) * vecf(h, gamm
 procedure commutator(x, y); x*y - y*x;
 
 
-\mathit{commutator}
+commutator
 
 
 procedure centralcharge(tau); 6/tau + 13 + 6*tau;
 
 
-\mathit{centralcharge}
+centralcharge
 
 procedure conformalweight(r, s, tau) = (1-r**2)/(4*tau) + (1-r*s)/2 + (1-s**2)/4*tau;
 
 
-\mathit{conformalweight}
+conformalweight
 
 procedure cw(r, s, tau); conformalweight(r, s, tau);
 
 
-\mathit{cw}
+cw
 
 
 procedure partitions(n); begin
@@ -93,36 +113,44 @@ procedure partitions(n); begin
 end;
 
 
-\mathit{partitions}
+partitions
 
-    
+
+% partnum(n) = partition number of n
 procedure partnum(n); length(partitions(n));
 
 
-\mathit{partnum}
+partnum
 
+
+% Define degree by deg(L(-m)) = m
+% monomial({a,b,c,...}) = ...*L(-c)*L(-b)*L(-a) (a,b,c,...>0)
+% monomials(d) = list of all monomials of degree d
+% dualmonomial({a,b,c,...}) = l(a)*L(b)*L(c)*...
+% dualmonomials(d) = list of all dualmonomials of degree -d
 
 procedure monomial(p); for each m in p product l(-m);
 
 
-\mathit{monomial}
+monomial
 
 procedure monomials(d); for each p in partitions(d) collect monomial(p);
 
 
-\mathit{monomials}
+monomials
 
 procedure dualmonomial(p); for each m in reverse(p) product l(m);
 
 
-\mathit{dualmonomial}
+dualmonomial
 
 procedure dualmonomials(d); for each p in partitions(d) collect dualmonomial(p);
 
 
-\mathit{dualmonomials}
+dualmonomials
 
 
+% kacmat(d) = p(d)xp(d) matrix determinant of which is equal to Kac determinant of degree d
 procedure kacmat(d); begin
   scalar basis_r := monomials(d);
   scalar basis_l := dualmonomials(d);
@@ -142,62 +170,69 @@ procedure kacmat(d); begin
 end;
 
 
-\mathit{kacmat}
+kacmat
 
 
+% kacdet(d) = Kac determinant of degree d
 procedure kacdet(d); begin
   kac_matrix := kacmat(d);
   return det(kac_matrix);
 end;
 
 
-\mathit{kacdet}
+kacdet
 
 
+% kacdet_t(d, tau) = Kac determinant of degree d for c = c(tau)
 procedure kacdet_t(d, tau); sub(c = centralcharge(tau), kacdet(d));
 
 
-\mathit{kacdet}_t
+kacdet_t
 
 
+% kacdet_t_rhs(d, tau) = formula of kacdet_t(d, tau)
 procedure kacdet_t_rhs(d, tau); begin
   return for r := 1:d product for s := 1:d product (h - cw(r, s, tau))^partnum(d - r*s);
 end;
 
 
-\mathit{kacdet\_t\_rhs}
+kacdet_t_rhs
 
 
+% kacdet_fact(d, tau) = factorization of kacdet_t(d, tau)
 procedure kacdet_fact(d, tau); begin
   scalar kd := kacdet_t(d, tau);
   return {num = factorize(num(kd)), den = den(kd)};
 end;
 
 
-\mathit{kacdet\_fact}
+kacdet_fact
 
 
+% kacdet_sol(d, tau) = solution of kacdet_t(d, tau) w.r.t. h
 procedure kacdet_sol(d, tau); begin
   scalar kd := kacdet_t(d, tau);
   return solve(kd, h)
 end;
 
 
-\mathit{kacdet\_sol}
+kacdet_sol
 
 
-procedure lincomb(n); begin
+% lincomb(d) = L(-1)^d + x1 L(-2)*L(-1)^{d-2} + ...
+procedure lincomb(d); begin
   scalar j := -1;
-  return for each ll in monomials(n) sum <<
+  return for each ll in monomials(d) sum <<
     j := j + 1;
     if j = 0 then ll else mkid(x, j) * ll
   >>;
 end;
 
 
-\mathit{lincomb}
+lincomb
 
 
+% ltoz(s, d) = replace l(-m) in s by z_m 
 procedure ltoz(s, d); begin
   scalar ss := s;
   for m := 1:d do ss := (ss where l(-m) => mkid(z, m));
@@ -205,9 +240,10 @@ procedure ltoz(s, d); begin
 end;
 
 
-\mathit{ltoz}
+ltoz
 
 
+% allcoeffs(s, d) = all coefficients of s
 procedure allcoeffs(s, d); begin
   scalar sz := ltoz(s, d);
   scalar cs := coeff(sz, mkid(z, 1));
@@ -217,9 +253,10 @@ procedure allcoeffs(s, d); begin
 end;
 
 
-\mathit{allcoeffs}
+allcoeffs
 
 
+% solsingvec(r, s, tau) = solution x1, x2, ... of the equation of the singular vector for (r, s)
 procedure solsingvec(r, s, tau); begin
   scalar d, sing, v1, s1, lineq1, v2, s2, lineq2, lineq, lineq_t, xs, sol;
   if r = 1 and s = 1 then return {{}};
@@ -239,9 +276,10 @@ procedure solsingvec(r, s, tau); begin
 end;
 
 
-\mathit{solsingvec}
+solsingvec
 
 
+% singvec(r, s, tau) = Virasoro part of the singular vector for (r, s) 
 procedure singvec(r, s, tau); begin
   scalar sing := lincomb(r*s);
   scalar sol := solsingvec(r, s, tau);
@@ -249,18 +287,20 @@ procedure singvec(r, s, tau); begin
 end;
 
 
-\mathit{singvec}
+singvec
 
 
+% proj12(s) = replace l(m) (m<-2) in s by 0 and l(-1), l(-2) by z1, z2 respectively
 procedure proj12(s); begin
   scalar sp := vecproj() * s;
   return vecproj() * sp;
 end;
 
 
-\mathit{proj}_{12}
+proj12
 
 
+% proj12_fact(s) = factorization of proj12(s)
 procedure proj12_fact(s); begin
   scalar sp := vecproj() * s;
   sp := vecproj() * sp;
@@ -268,9 +308,10 @@ procedure proj12_fact(s); begin
 end;
 
 
-\mathit{proj12\_fact}
+proj12_fact
 
 
+% act_ff(s, h, gamma) = result of the action of s on w^{-gamma} with conformal weight h
 procedure act_ff(s, h, gamma); begin
   scalar g := s * vecf(h, gamma);
   g := g * vecf(h, gamma);
@@ -278,18 +319,20 @@ procedure act_ff(s, h, gamma); begin
 end;
 
 
-\mathit{act\_ff}
+act_ff
 
 
+% g_ff(r, s, h, gamma, tau) = result of the action of singvec(r, s, tau) on w^{-gamma} with h
 procedure g_ff(r, s, h, gamma, tau); begin
   scalar sing := singvec(r, s, tau);
   return act_ff(sing, h, gamma);
 end;
 
 
-\mathit{g\_ff}
+g_ff
 
 
+% g_ff_factor(k, l, a, b, h, gamma) = the formula of Theorem 3.2 in [FF]
 procedure g_ff_factor(k, l, a, b, h, gamma); begin
   return (gamma^2 
     + ((2*a*(k-a)+k)/theta^2 + (2*b*(l-b)+l)*theta^2 + k*l+k+l-(k-2*a)*(l-2*b)) * gamma
@@ -300,9 +343,11 @@ procedure g_ff_factor(k, l, a, b, h, gamma); begin
 end;
 
 
-\mathit{g\_ff\_factor}
+g_ff_factor
 
 
+% g_ff_factor_lhs(r0, s0, r1, s1, h2, i1, j1)
+% = another version of the formula in Theorem 3.2 of [FF]
 procedure g_ff_factor_lhs(r0, s0, r1, s1, h2, i1, j1); begin
   scalar k := r1 - 1; 
   scalar l := s1 - 1; 
@@ -314,9 +359,11 @@ procedure g_ff_factor_lhs(r0, s0, r1, s1, h2, i1, j1); begin
 end;
 
 
-\mathit{g\_ff\_factor\_lhs}
+g_ff_factor_lhs
 
 
+% g_ff_factor_rhs(r0, s0, r1, s1, h2, i1, j1)
+% = explicit factorization of g_ff_factor_lhs(r0, s0, r1, s1, h2, i1, j1)
 procedure g_ff_factor_rhs(r0, s0, r1, s1, h2, i1, j1); begin
   return (
     (h2 - cw(r0+r1+1-2*i1, s0+s1+1-2*j1, tau)) *
@@ -325,25 +372,33 @@ procedure g_ff_factor_rhs(r0, s0, r1, s1, h2, i1, j1); begin
 end;
 
 
-\mathit{g\_ff\_factor\_rhs}
+g_ff_factor_rhs
 
 
+% f_ff(r1, s1, h0, h1, h2, tau)
+% = <h2|Phi(w, singvec_{r1,s1}|h1>)|h0> / w^{h2-h1-h0-r1*s1}
+% where c = c(tau)
 procedure f_ff(r1, s1, h0, h1, h2, tau); g_ff(r1, s1, h0, h0 + h1 - h2, tau);
 
 
-\mathit{f\_ff}
+f_ff
 
 
+% f_fusion(r0, s0, r1, s1, h2, tau)
+% = <h2|Phi(w, singvec_{r1,s1}|h1>)|h0> / w^{h2-h1-h0-r1*s1}
+% where c = c(tau), h0 = h_{r0,s0}(tau), h1 = h_{r1,s1}(tau). 
 procedure f_fusion(r0, s0, r1, s1, h2, tau); begin
-  scalar h0 := conformalweight(r0, s0, tau);
-  scalar h1 := conformalweight(r1, s1, tau);
+  scalar h0 := cw(r0, s0, tau);
+  scalar h1 := cw(r1, s1, tau);
   return f_ff(r1, s1, h0, h1, h2, tau);
 end;
 
 
-\mathit{f\_fusion}
+f_fusion
 
 
+% f_fusion_rhs(r0, s0, r1, s1, h2, tau)
+% = the explicit factorization of f_fusion(r0, s0, r1, s1, h2, tau)
 procedure f_fusion_rhs(r0, s0, r1, s1, h2, tau); begin
   return ((-1)^(r1*s1) *
     (for i1 := 1:r1 product for j1 := 1:s1 product h2 - cw(r0+r1+1-2*i1, s0+s1+1-2*j1, tau))
@@ -351,33 +406,40 @@ procedure f_fusion_rhs(r0, s0, r1, s1, h2, tau); begin
 end;
 
 
-\mathit{f\_fusion\_rhs}
+f_fusion_rhs
 
 
+% f_fusion_fact(r0, s0, r1, s1, h2, tau)
+% = factorization of f_ff(r1, s1, h0, h1, h2, tau)
 procedure f_fusion_fact(r0, s0, r1, s1, h2, tau); begin
   scalar f := f_fusion(r0, s0, r1, s1, h2, tau);
   return {num = factorize(num(f)), den = den(f)};
 end;
 
 
-\mathit{f\_fusion\_fact}
+f_fusion_fact
 
 
+% f_fusion_fact(r0, s0, r1, s1, h2, tau)
+% = solution of f_ff(r1, s1, h0, h1, h2, tau) = 0 w.r.t. h2
 procedure f_fusion_sol(r0, s0, r1, s1, h2, tau); begin
   scalar f := f_fusion(r0, s0, r1, s1, h2, tau);
   return solve(f, h2);
 end;
 
 
-\mathit{f\_fusion\_sol}
+f_fusion_sol
 
 
+% f_minimal_model(p, q) = <h|Phi(w, singvec_{p-1,q-1}|0>)|h> / w^{-r1*s1}
+% where c = c(-p/q)
 procedure f_minimal_model(p, q); f_ff(p-1, q-1, h, 0, h, -p/q);
 
 
-\mathit{f\_minimal\_model}
+f_minimal_model
 
 
+% f_minimal_model_fact(p, q) = factorization of f_minimal_model(p, q)
 procedure f_minimal_model_fact(p, q); begin
   scalar f := f_minimal_model(p, q);
   scalar topcoeff := first(reverse(coeff(f, h)));
@@ -386,23 +448,41 @@ procedure f_minimal_model_fact(p, q); begin
 end;
 
 
-\mathit{f\_minimal\_model\_fact}
+f_minimal_model_fact
 
 
+% f_minimal_model_factor_lhs(p, q)
+% = certain specialization of the formula of Theorem 3.2 in [FF].
 procedure f_minimal_model_factor_lhs(p, q, r, s, h); begin
   return sub(tau=-p/q, g_ff_factor(p-2, q-2, r-1, s-1, h, 0));
 end;
 
 
-\mathit{f\_minimal\_model\_factor\_lhs}
+f_minimal_model_factor_lhs
 
 
+% f_minimal_model_factor_rhs(p, q)
+% = explicit simplification of f_minimal_model_factor_lhs(p, q)
 procedure f_minimal_model_factor_rhs(p, q, r, w, h); begin
   return -4*(q*r - p*s)^2/(p*q) * (h - cw(r, s, -p/q));
 end;
 
 
-\mathit{f\_minimal\_model\_factor\_rhs}
+f_minimal_model_factor_rhs
+
+
+% table_minimal_model(p, q)
+% = table of the conformal weights of the minimal model for c=c(-p/q).
+procedure table_minimal_model(p, q); begin
+  matrix table_mm(p-1, q-1);
+  for r := 1:(p-1) do for s := 1:(q-1) do begin
+    table_mm(r, s) := cw(r, s, -p/q);
+  end;
+  return table_mm;
+end;
+
+
+table_minimal_model
 
 
 ;
@@ -410,6 +490,8 @@ end;
 end;
 
 2: in "D:\OneDrive\work\ConformalFieldTheory\REDUCE\virasoro_algebra_test.red";
+% L(m)'s satidfy the relation of the Virasoro algebta.
+
 operator O;
 
 
@@ -419,18 +501,18 @@ noncom O;
 commutator(O(m), O(n));
 
 
-o\left(m\right)\,o\left(n\right)-o\left(n\right)\,o\left(m\right)
+o(m)*o(n) - o(n)*o(m)
 
 
 commutator(L(0), L(-2));
 
 
-2\,l\left(-2\right)
+2*l(-2)
 
 commutator(L(0), L(-1));
 
 
-l\left(-1\right)
+l(-1)
 
 commutator(L(0), L(0));
 
@@ -440,27 +522,27 @@ commutator(L(0), L(0));
 commutator(L(0), L(1));
 
 
--l\left(1\right)
+ - l(1)
 
 commutator(L(0), L(2));
 
 
--2\,l\left(2\right)
+ - 2*l(2)
 
 commutator(L(1), L(-2));
 
 
-3\,l\left(-1\right)
+3*l(-1)
 
 commutator(L(1), L(-1));
 
 
-2\,l\left(0\right)
+2*l(0)
 
 commutator(L(1), L(0));
 
 
-l\left(1\right)
+l(1)
 
 commutator(L(1), L(1));
 
@@ -470,27 +552,29 @@ commutator(L(1), L(1));
 commutator(L(1), L(2));
 
 
--l\left(3\right)
+ - l(3)
 
 commutator(L(2), L(-2));
 
 
-4\,l\left(0\right)+\frac{1}{2}\,c
+          1
+4*l(0) + ---*c
+          2
 
 commutator(L(2), L(-1));
 
 
-3\,l\left(1\right)
+3*l(1)
 
 commutator(L(2), L(0));
 
 
-2\,l\left(2\right)
+2*l(2)
 
 commutator(L(2), L(1));
 
 
-l\left(3\right)
+l(3)
 
 commutator(L(2), L(2));
 
@@ -498,20 +582,22 @@ commutator(L(2), L(2));
 0
 
 
+% left action of L(m) on |h>
+
 L(-2)*vec(h);
 
 
-l\left(-2\right)\,\mathit{vec}\left(h\right)
+l(-2)*vec(h)
 
 L(-1)*vec(h);
 
 
-l\left(-1\right)\,\mathit{vec}\left(h\right)
+l(-1)*vec(h)
 
 L(0)*vec(h);
 
 
-h\,\mathit{vec}\left(h\right)
+h*vec(h)
 
 L(1)*vec(h);
 
@@ -523,6 +609,8 @@ L(2)*vec(h);
 
 0
 
+
+% right action of L(m) on <h|
 
 vec(h)*L(-2);
 
@@ -537,18 +625,20 @@ vec(h)*L(-1);
 vec(h)*L(0);
 
 
-h\,\mathit{vec}\left(h\right)
+h*vec(h)
 
 vec(h)*L(1);
 
 
-\mathit{vec}\left(h\right)\,l\left(1\right)
+vec(h)*l(1)
 
 vec(h)*L(2);
 
 
-\mathit{vec}\left(h\right)\,l\left(2\right)
+vec(h)*l(2)
 
+
+% <h|h> = 1
 
 vec(h)*vec(h);
 
@@ -556,102 +646,194 @@ vec(h)*vec(h);
 1
 
 
+% central charge c(tau)
 centralcharge(tau);
 
 
-\tau ^{-1}\,\left(6\,\tau ^2+13\,\tau +6\right)
+   -1       2
+tau  *(6*tau  + 13*tau + 6)
 
+
+% conformal weight h_{r,s}(tau)
 conformalweight(r, s, tau);
 
 
-\tau ^{-1}\,\left(-\frac{1}{4}\,\tau ^2\,s^2+\frac{1}{4}\,\tau ^2-\frac{1}{2}\,\tau \,r\,s+\frac{1}{2}\,\tau -\frac{1}{4}\,r^2+\frac{1}{4}\right)
+   -1      1     2  2    1     2    1             1         1   2    1
+tau  *( - ---*tau *s  + ---*tau  - ---*tau*r*s + ---*tau - ---*r  + ---)
+           4             4          2             2         4        4
 
 cw(r, s, tau);
 
 
-\tau ^{-1}\,\left(-\frac{1}{4}\,\tau ^2\,s^2+\frac{1}{4}\,\tau ^2-\frac{1}{2}\,\tau \,r\,s+\frac{1}{2}\,\tau -\frac{1}{4}\,r^2+\frac{1}{4}\right)
+   -1      1     2  2    1     2    1             1         1   2    1
+tau  *( - ---*tau *s  + ---*tau  - ---*tau*r*s + ---*tau - ---*r  + ---)
+           4             4          2             2         4        4
 
 
+% list of the all partition of n
 partitions(5);
 
 
-\left\{\left\{1,1,1,1,1\right\},\left\{1,1,1,2\right\},\left\{1,1,3\right\},\left\{1,2,2\right\},\left\{1,4\right\},\left\{2,3\right\},\left\{5\right\}\right\}
+{{1,1,1,1,1},{1,1,1,2},{1,1,3},{1,2,2},{1,4},{2,3},{5}}
 
+
+% partition number of n
 partnum(5);
 
 
 7
 
 
+% monomials and dual monomials of L(m)
+
 monomial({1,1,2,3,3,3,4});
 
 
-l\left(-4\right)\,l\left(-3\right)^3\,l\left(-2\right)\,l\left(-1\right)^2
+           3            2
+l(-4)*l(-3) *l(-2)*l(-1)
 
 monomials(5);
 
 
-\left\{l\left(-1\right)^5,l\left(-2\right)\,l\left(-1\right)^3,l\left(-3\right)\,l\left(-1\right)^2,l\left(-2\right)^2\,l\left(-1\right),l\left(-4\right)\,l\left(-1\right),l\left(-3\right)\,l\left(-2\right),l\left(-5\right)\right\}
+      5
+{l(-1) ,
+
+            3
+ l(-2)*l(-1) ,
+
+            2
+ l(-3)*l(-1) ,
+
+      2
+ l(-2) *l(-1),
+
+ l(-4)*l(-1),
+
+ l(-3)*l(-2),
+
+ l(-5)}
 
 dualmonomial({1,1,2,3,3,3,4});
 
 
-l\left(1\right)^2\,l\left(2\right)\,l\left(3\right)^3\,l\left(4\right)
+    2          3
+l(1) *l(2)*l(3) *l(4)
 
 dualmonomials(5);
 
 
-\left\{l\left(1\right)^5,l\left(1\right)^3\,l\left(2\right),l\left(1\right)^2\,l\left(3\right),l\left(1\right)\,l\left(2\right)^2,l\left(1\right)\,l\left(4\right),l\left(2\right)\,l\left(3\right),l\left(5\right)\right\}
+     5
+{l(1) ,
 
+     3
+ l(1) *l(2),
+
+     2
+ l(1) *l(3),
+
+          2
+ l(1)*l(2) ,
+
+ l(1)*l(4),
+
+ l(2)*l(3),
+
+ l(5)}
+
+
+% Kac determinant
 
 kacmat(3);
 
 
-\mathit{mat}\left(\left(24\,h\,\left(2\,h^2+3\,h+1\right),12\,h\,\left(3\,h+1\right),24\,h\right),\left(12\,h\,\left(3\,h+1\right),h\,\left(8\,h+c+8\right),10\,h\right),\right.
+[         2                                         ]
+[24*h*(2*h  + 3*h + 1)  12*h*(3*h + 1)      24*h    ]
+[                                                   ]
+[   12*h*(3*h + 1)      h*(8*h + c + 8)     10*h    ]
+[                                                   ]
+[        24*h                10*h        2*(3*h + c)]
 
-
-\left.\left(24\,h,10\,h,2\,\left(3\,h+c\right)\right)\right)
 
 kacdet(3);
 
 
-48\,h^2\,\left(48\,h^4+22\,h^3\,c-142\,h^3+2\,h^2\,c^2-5\,h^2\,c+102\,h^2+3\,h\,c^2-13\,h\,c-20\,h+c^2+2\,c\right)
+    2      4       3          3      2  2      2          2        2
+48*h *(48*h  + 22*h *c - 142*h  + 2*h *c  - 5*h *c + 102*h  + 3*h*c  - 13*h*c
+
+                  2
+        - 20*h + c  + 2*c)
 
 kacdet_t(3, tau);
 
 
-144\,\tau ^{-2}\,h^2\times
+       -2  2      4    2       3    3       3    2       3           2    4
+144*tau  *h *(16*h *tau  + 44*h *tau  + 48*h *tau  + 44*h *tau + 24*h *tau
 
+                     2    3        2    2       2           2           4
+               + 94*h *tau  + 173*h *tau  + 94*h *tau + 24*h  + 36*h*tau
 
-\left(16\,h^4\,\tau ^2+44\,h^3\,\tau ^3+48\,h^3\,\tau ^2+44\,h^3\,\tau +24\,h^2\,\tau ^4+94\,h^2\,\tau ^3+173\,h^2\,\tau ^2+94\,h^2\,\tau +24\,h^2+36\,h\,\tau ^4+\right.
+                          3            2                            4         3
+               + 130*h*tau  + 178*h*tau  + 130*h*tau + 36*h + 12*tau  + 56*tau
 
-
-\left.130\,h\,\tau ^3+178\,h\,\tau ^2+130\,h\,\tau +36\,h+12\,\tau ^4+56\,\tau ^3+89\,\tau ^2+56\,\tau +12\right)
+                       2
+               + 89*tau  + 56*tau + 12)
 
 kacdet_fact(3, tau);
 
 
-\left\{\mathit{num}=\left\{\left\{144,1\right\},\left\{4\,h\,\tau +2\,\tau +3,1\right\},\left\{h\,\tau +\tau +2,1\right\},\left\{4\,h+3\,\tau +2,1\right\},\left\{h+2\,\tau +1,1\right\},\left\{h,2\right\}\right\},\mathit{den}=\tau ^2\right\}
+{num={{144,1},
+
+      {4*h*tau + 2*tau + 3,1},
+
+      {h*tau + tau + 2,1},
+
+      {4*h + 3*tau + 2,1},
+
+      {h + 2*tau + 1,1},
+
+      {h,2}},
+
+        2
+ den=tau }
 
 kacdet_sol(3, tau);
 
 
-\left\{h=0,h=\frac{-\tau -2}{\tau },h=-2\,\tau -1,h=\frac{-2\,\tau -3}{4\,\tau },h=\frac{-3\,\tau -2}{4}\right\}
+{h=0,
+
+     - tau - 2
+ h=------------,
+       tau
+
+ h= - 2*tau - 1,
+
+     - 2*tau - 3
+ h=--------------,
+       4*tau
+
+     - 3*tau - 2
+ h=--------------}
+         4
 
 
 kd_rhs := kacdet_t_rhs(3, tau);
 
 
-\mathit{kd\_rhs}\coloneqq 
+             -2  2   4    2    11   3    3      3    2    11   3
+kd_rhs := tau  *h *(h *tau  + ----*h *tau  + 3*h *tau  + ----*h *tau
+                               4                          4
 
+                 3   2    4    47   2    3    173   2    2    47   2
+              + ---*h *tau  + ----*h *tau  + -----*h *tau  + ----*h *tau
+                 2             8              16              8
 
-\tau ^{-2}\,h^2\times
+                 3   2    9       4    65       3    89       2    65
+              + ---*h  + ---*h*tau  + ----*h*tau  + ----*h*tau  + ----*h*tau
+                 2        4            8             8             8
 
-
-\left(h^4\,\tau ^2+\frac{11}{4}\,h^3\,\tau ^3+3\,h^3\,\tau ^2+\frac{11}{4}\,h^3\,\tau +\frac{3}{2}\,h^2\,\tau ^4+\frac{47}{8}\,h^2\,\tau ^3+\frac{173}{16}\,h^2\,\tau ^2+\frac{47}{8}\,h^2\,\tau +\frac{3}{2}\,h^2+\frac{9}{4}\,h\,\tau ^4+\frac{65}{8}\,h\,\tau ^3+\right.
-
-
-\left.\frac{89}{8}\,h\,\tau ^2+\frac{65}{8}\,h\,\tau +\frac{9}{4}\,h+\frac{3}{4}\,\tau ^4+\frac{7}{2}\,\tau ^3+\frac{89}{16}\,\tau ^2+\frac{7}{2}\,\tau +\frac{3}{4}\right)
+                 9       3     4    7     3    89     2    7         3
+              + ---*h + ---*tau  + ---*tau  + ----*tau  + ---*tau + ---)
+                 4       4          2          16          2         4
 
 kacdet_t(3, tau) / kd_rhs;
 
@@ -661,184 +843,333 @@ kacdet_t(3, tau) / kd_rhs;
 {num = factorize(num(kd_rhs)), den = den(kd_rhs)};
 
 
-\left\{\mathit{num}=\left\{\left\{4\,h\,\tau +2\,\tau +3,1\right\},\left\{h\,\tau +\tau +2,1\right\},\left\{4\,h+3\,\tau +2,1\right\},\left\{h+2\,\tau +1,1\right\},\left\{h,2\right\}\right\},\mathit{den}=16\,\tau ^2\right\}
+{num={{4*h*tau + 2*tau + 3,1},
+
+      {h*tau + tau + 2,1},
+
+      {4*h + 3*tau + 2,1},
+
+      {h + 2*tau + 1,1},
+
+      {h,2}},
+
+           2
+ den=16*tau }
 
 solve(kd_rhs, h);
 
 
-\left\{h=0,h=\tau ^{-1}\,\left(-\tau -2\right),h=-2\,\tau -1,h=\tau ^{-1}\,\left(-\frac{1}{2}\,\tau -\frac{3}{4}\right),h=-\frac{3}{4}\,\tau -\frac{1}{2}\right\}
+{h=0,
 
+      -1
+ h=tau  *( - tau - 2),
+
+ h= - 2*tau - 1,
+
+      -1      1         3
+ h=tau  *( - ---*tau - ---),
+              2         4
+
+       3         1
+ h= - ---*tau - ---}
+       4         2
+
+
+% singular vectors
 
 lincomb(4);
 
 
-l\left(-1\right)^4+\mathit{x}_{3}\,l\left(-2\right)^2+\mathit{x}_{1}\,l\left(-2\right)\,l\left(-1\right)^2+\mathit{x}_{2}\,l\left(-3\right)\,l\left(-1\right)+\mathit{x}_{4}\,l\left(-4\right)
+     4           2                 2
+l(-1)  + x3*l(-2)  + x1*l(-2)*l(-1)  + x2*l(-3)*l(-1) + x4*l(-4)
 
 ltoz(lincomb(4), 4);
 
 
-\mathit{x}_{1}\,\mathit{z}_{1}^2\,\mathit{z}_{2}+\mathit{x}_{2}\,\mathit{z}_{1}\,\mathit{z}_{3}+\mathit{x}_{3}\,\mathit{z}_{2}^2+\mathit{x}_{4}\,\mathit{z}_{4}+\mathit{z}_{1}^4
+     2                      2             4
+x1*z1 *z2 + x2*z1*z3 + x3*z2  + x4*z4 + z1
 
 allcoeffs(lincomb(4), 4);
 
 
-\left\{\mathit{x}_{4},\mathit{x}_{3},\mathit{x}_{2},\mathit{x}_{1},1\right\}
+{x4,x3,x2,x1,1}
 
 solsingvec(2, 2, tau);
 
 
-\left\{\left\{\mathit{x}_{1}=\frac{2\,\tau ^2+2}{\tau },\mathit{x}_{2}=\frac{2\,\tau ^2+6\,\tau +2}{\tau },\mathit{x}_{3}=\frac{\tau ^4-2\,\tau ^2+1}{\tau ^2},\mathit{x}_{4}=\frac{3\,\tau ^2+6\,\tau +3}{\tau }\right\}\right\}
+           2
+      2*tau  + 2
+{{x1=------------,
+         tau
+
+           2
+      2*tau  + 6*tau + 2
+  x2=--------------------,
+             tau
+
+         4        2
+      tau  - 2*tau  + 1
+  x3=-------------------,
+               2
+            tau
+
+           2
+      3*tau  + 6*tau + 3
+  x4=--------------------}}
+             tau
 
 singvec(2, 2, tau);
 
 
-l\left(-1\right)^4+\tau ^{-2}\,l\left(-2\right)^2\,\left(\tau ^4-2\,\tau ^2+1\right)+2\,\tau ^{-1}\,l\left(-2\right)\,l\left(-1\right)^2\,\left(\tau ^2+1\right)+2\,\tau ^{-1}\,l\left(-3\right)\,l\left(-1\right)\,\left(\tau ^2+3\,\tau +1\right)+
+     4      -2      2     4        2             -1            2     2
+l(-1)  + tau  *l(-2) *(tau  - 2*tau  + 1) + 2*tau  *l(-2)*l(-1) *(tau  + 1)
+
+        -1                 2                     -1           2
+ + 2*tau  *l(-3)*l(-1)*(tau  + 3*tau + 1) + 3*tau  *l(-4)*(tau  + 2*tau + 1)
 
 
-3\,\tau ^{-1}\,l\left(-4\right)\,\left(\tau ^2+2\,\tau +1\right)
-
+% projection of singvec_{r,s}(tau) by L(-1)->z1, L(-2)->z2, L(-3),L(-4)...->0
 
 proj12(singvec(2, 2, tau));
 
 
-\tau ^{-2}\,\left(\tau ^4\,\mathit{z}_{2}^2+2\,\tau ^3\,\mathit{z}_{1}^2\,\mathit{z}_{2}+\tau ^2\,\mathit{z}_{1}^4-2\,\tau ^2\,\mathit{z}_{2}^2+2\,\tau \,\mathit{z}_{1}^2\,\mathit{z}_{2}+\mathit{z}_{2}^2\right)
+   -2     4   2        3   2         2   4        2   2           2        2
+tau  *(tau *z2  + 2*tau *z1 *z2 + tau *z1  - 2*tau *z2  + 2*tau*z1 *z2 + z2 )
 
 proj12_fact(singvec(2, 2, tau));
 
 
-\left\{\mathit{num}=\left\{\left\{\tau ^2\,\mathit{z}_{2}+\tau \,\mathit{z}_{1}^2+2\,\tau \,\mathit{z}_{2}+\mathit{z}_{2},1\right\},\left\{\tau ^2\,\mathit{z}_{2}+\tau \,\mathit{z}_{1}^2-2\,\tau \,\mathit{z}_{2}+\mathit{z}_{2},1\right\}\right\},\mathit{den}=\tau ^2\right\}
+          2            2
+{num={{tau *z2 + tau*z1  + 2*tau*z2 + z2,1},
+
+          2            2
+      {tau *z2 + tau*z1  - 2*tau*z2 + z2,1}},
+
+        2
+ den=tau }
 
 
 proj12_fact(singvec(1, 1, tau));
 
 
-\left\{\mathit{num}=\left\{\left\{\mathit{z}_{1},1\right\}\right\},\mathit{den}=1\right\}
+{num={{z1,1}},den=1}
 
 proj12_fact(singvec(1, 2, tau));
 
 
-\left\{\mathit{num}=\left\{\left\{\tau \,\mathit{z}_{2}+\mathit{z}_{1}^2,1\right\}\right\},\mathit{den}=1\right\}
+                  2
+{num={{tau*z2 + z1 ,1}},den=1}
 
 proj12_fact(singvec(1, 3, tau));
 
 
-\left\{\mathit{num}=\left\{\left\{4\,\tau \,\mathit{z}_{2}+\mathit{z}_{1}^2,1\right\},\left\{\mathit{z}_{1},1\right\}\right\},\mathit{den}=1\right\}
+                    2
+{num={{4*tau*z2 + z1 ,1},{z1,1}},den=1}
 
 proj12_fact(singvec(1, 4, tau));
 
 
-\left\{\mathit{num}=\left\{\left\{9\,\tau \,\mathit{z}_{2}+\mathit{z}_{1}^2,1\right\},\left\{\tau \,\mathit{z}_{2}+\mathit{z}_{1}^2,1\right\}\right\},\mathit{den}=1\right\}
+                    2                2
+{num={{9*tau*z2 + z1 ,1},{tau*z2 + z1 ,1}},den=1}
 
 proj12_fact(singvec(1, 5, tau));
 
 
-\left\{\mathit{num}=\left\{\left\{16\,\tau \,\mathit{z}_{2}+\mathit{z}_{1}^2,1\right\},\left\{4\,\tau \,\mathit{z}_{2}+\mathit{z}_{1}^2,1\right\},\left\{\mathit{z}_{1},1\right\}\right\},\mathit{den}=1\right\}
+                     2                  2
+{num={{16*tau*z2 + z1 ,1},{4*tau*z2 + z1 ,1},{z1,1}},
+
+ den=1}
 
 proj12_fact(singvec(1, 6, tau));
 
 
-\left\{\mathit{num}=\left\{\left\{25\,\tau \,\mathit{z}_{2}+\mathit{z}_{1}^2,1\right\},\left\{9\,\tau \,\mathit{z}_{2}+\mathit{z}_{1}^2,1\right\},\left\{\tau \,\mathit{z}_{2}+\mathit{z}_{1}^2,1\right\}\right\},\mathit{den}=1\right\}
+                     2
+{num={{25*tau*z2 + z1 ,1},
+
+                    2
+      {9*tau*z2 + z1 ,1},
+
+                  2
+      {tau*z2 + z1 ,1}},
+
+ den=1}
 
 proj12_fact(singvec(1, 7, tau));
 
 
-\left\{\mathit{num}=\left\{\left\{36\,\tau \,\mathit{z}_{2}+\mathit{z}_{1}^2,1\right\},\left\{16\,\tau \,\mathit{z}_{2}+\mathit{z}_{1}^2,1\right\},\left\{4\,\tau \,\mathit{z}_{2}+\mathit{z}_{1}^2,1\right\},\left\{\mathit{z}_{1},1\right\}\right\},\mathit{den}=1\right\}
+                     2
+{num={{36*tau*z2 + z1 ,1},
 
+                     2
+      {16*tau*z2 + z1 ,1},
+
+                    2
+      {4*tau*z2 + z1 ,1},
+
+      {z1,1}},
+
+ den=1}
+
+
+% action of L(m) on w^{h2-h1-h0}
 
 act_ff(l(-3), h0, h0+h1-h2);
 
 
-3\,\mathit{h}_{0}+\mathit{h}_{1}-\mathit{h}_{2}
+3*h0 + h1 - h2
 
 factorize(act_ff(l(-2)*l(-1), h0, h0+h1-h2));
 
 
-\left\{\left\{2\,\mathit{h}_{0}+\mathit{h}_{1}-\mathit{h}_{2}+1,1\right\},\left\{\mathit{h}_{0}+\mathit{h}_{1}-\mathit{h}_{2},1\right\}\right\}
+{{2*h0 + h1 - h2 + 1,1},{h0 + h1 - h2,1}}
 
 factorize(act_ff(l(-1)^3, h0, h0+h1-h2));
 
 
-\left\{\left\{\mathit{h}_{0}+\mathit{h}_{1}-\mathit{h}_{2}+2,1\right\},\left\{\mathit{h}_{0}+\mathit{h}_{1}-\mathit{h}_{2}+1,1\right\},\left\{\mathit{h}_{0}+\mathit{h}_{1}-\mathit{h}_{2},1\right\}\right\}
+{{h0 + h1 - h2 + 2,1},
 
+ {h0 + h1 - h2 + 1,1},
+
+ {h0 + h1 - h2,1}}
+
+
+% action of singvec_{r,s} on w^{h2-h1-h0}
 
 g_ff(2, 2, cw(1, 1, tau), cw(1, 1, tau) + cw(2, 2, tau) + h2, tau);
 
 
-\tau ^{-4}\times
+   -4    9      8    3      7       3      7    1     6   2    1     6
+tau  *(-----*tau  + ----*tau *h2 + ----*tau  - ---*tau *h2  + ---*tau *h2
+        256          16             16          8              2
+
+           15     6      5   3      5   2    3      5       3      5      4   4
+        + ----*tau  - tau *h2  - tau *h2  - ----*tau *h2 - ----*tau  + tau *h2
+           64                                16             16
+
+           3     4   2      4       69      4      3   3      3   2
+        - ---*tau *h2  - tau *h2 - -----*tau  - tau *h2  - tau *h2
+           4                        128
+
+           3      3       3      3    1     2   2    1     2       15     2
+        - ----*tau *h2 - ----*tau  - ---*tau *h2  + ---*tau *h2 + ----*tau
+           16             16          8              2             64
+
+           3             3           9
+        + ----*tau*h2 + ----*tau + -----)
+           16            16         256
 
 
-\left(\frac{9}{256}\,\tau ^8+\frac{3}{16}\,\tau ^7\,\mathit{h}_{2}+\frac{3}{16}\,\tau ^7-\frac{1}{8}\,\tau ^6\,\mathit{h}_{2}^2+\frac{1}{2}\,\tau ^6\,\mathit{h}_{2}+\frac{15}{64}\,\tau ^6-\tau ^5\,\mathit{h}_{2}^3-\tau ^5\,\mathit{h}_{2}^2-\frac{3}{16}\,\tau ^5\,\mathit{h}_{2}-\frac{3}{16}\,\tau ^5+\tau ^4\,\mathit{h}_{2}^4-\right.
-
-
-\frac{3}{4}\,\tau ^4\,\mathit{h}_{2}^2-\tau ^4\,\mathit{h}_{2}-\frac{69}{128}\,\tau ^4-\tau ^3\,\mathit{h}_{2}^3-\tau ^3\,\mathit{h}_{2}^2-\frac{3}{16}\,\tau ^3\,\mathit{h}_{2}-\frac{3}{16}\,\tau ^3-\frac{1}{8}\,\tau ^2\,\mathit{h}_{2}^2+\frac{1}{2}\,\tau ^2\,\mathit{h}_{2}+\frac{15}{64}\,\tau ^2+\frac{3}{16}\,\tau \,\mathit{h}_{2}+\frac{3}{16}\,\tau +
-
-
-\left.\frac{9}{256}\right)
-
+% Verify the factorization of g_ff_factor_lhs
 
 solve(g_ff_factor_lhs(r0, s0, r1, s1, h2, i1, j1), h2);
 
 
-\left\{\mathit{h}_{2}=\right.
+       -1        2   2      2            2            2       1     2   2
+{h2=tau  *( - tau *j1  + tau *j1*s0 + tau *j1*s1 + tau *j1 - ---*tau *s0
+                                                              4
 
+               1     2          1     2       1     2   2    1     2
+            - ---*tau *s0*s1 - ---*tau *s0 - ---*tau *s1  - ---*tau *s1
+               2                2             4              2
 
-\tau ^{-1}\times
+            - 2*tau*i1*j1 + tau*i1*s0 + tau*i1*s1 + tau*i1 + tau*j1*r0
 
+                                    1               1               1
+            + tau*j1*r1 + tau*j1 - ---*tau*r0*s0 - ---*tau*r0*s1 - ---*tau*r0
+                                    2               2               2
 
-\left(-\tau ^2\,\mathit{j}_{1}^2+\tau ^2\,\mathit{j}_{1}\,\mathit{s}_{0}+\tau ^2\,\mathit{j}_{1}\,\mathit{s}_{1}+\tau ^2\,\mathit{j}_{1}-\frac{1}{4}\,\tau ^2\,\mathit{s}_{0}^2-\frac{1}{2}\,\tau ^2\,\mathit{s}_{0}\,\mathit{s}_{1}-\frac{1}{2}\,\tau ^2\,\mathit{s}_{0}-\frac{1}{4}\,\tau ^2\,\mathit{s}_{1}^2-\frac{1}{2}\,\tau ^2\,\mathit{s}_{1}-2\,\tau \,\mathit{i}_{1}\,\mathit{j}_{1}+\tau \,\mathit{i}_{1}\,\mathit{s}_{0}\right.
+               1               1               1            1
+            - ---*tau*r1*s0 - ---*tau*r1*s1 - ---*tau*r1 - ---*tau*s0
+               2               2               2            2
 
+               1             2                         1    2    1
+            - ---*tau*s1 - i1  + i1*r0 + i1*r1 + i1 - ---*r0  - ---*r0*r1
+               2                                       4         2
 
-\mathrm{}+\tau \,\mathit{i}_{1}\,\mathit{s}_{1}+\tau \,\mathit{i}_{1}+\tau \,\mathit{j}_{1}\,\mathit{r}_{0}+\tau \,\mathit{j}_{1}\,\mathit{r}_{1}+\tau \,\mathit{j}_{1}-\frac{1}{2}\,\tau \,\mathit{r}_{0}\,\mathit{s}_{0}-\frac{1}{2}\,\tau \,\mathit{r}_{0}\,\mathit{s}_{1}-\frac{1}{2}\,\tau \,\mathit{r}_{0}-\frac{1}{2}\,\tau \,\mathit{r}_{1}\,\mathit{s}_{0}-\frac{1}{2}\,\tau \,\mathit{r}_{1}\,\mathit{s}_{1}-\frac{1}{2}\,\tau \,\mathit{r}_{1}-\frac{1}{2}\,\tau \,\mathit{s}_{0}-
+               1        1    2    1
+            - ---*r0 - ---*r1  - ---*r1),
+               2        4         2
 
+       -1        2   2      2            2            2       1     2   2
+ h2=tau  *( - tau *j1  - tau *j1*s0 + tau *j1*s1 + tau *j1 - ---*tau *s0
+                                                              4
 
-\left.\frac{1}{2}\,\tau \,\mathit{s}_{1}-\mathit{i}_{1}^2+\mathit{i}_{1}\,\mathit{r}_{0}+\mathit{i}_{1}\,\mathit{r}_{1}+\mathit{i}_{1}-\frac{1}{4}\,\mathit{r}_{0}^2-\frac{1}{2}\,\mathit{r}_{0}\,\mathit{r}_{1}-\frac{1}{2}\,\mathit{r}_{0}-\frac{1}{4}\,\mathit{r}_{1}^2-\frac{1}{2}\,\mathit{r}_{1}\right),
+               1     2          1     2       1     2   2    1     2
+            + ---*tau *s0*s1 + ---*tau *s0 - ---*tau *s1  - ---*tau *s1
+               2                2             4              2
 
+            - 2*tau*i1*j1 - tau*i1*s0 + tau*i1*s1 + tau*i1 - tau*j1*r0
 
-\mathit{h}_{2}=
+                                    1               1               1
+            + tau*j1*r1 + tau*j1 - ---*tau*r0*s0 + ---*tau*r0*s1 + ---*tau*r0
+                                    2               2               2
 
+               1               1               1            1
+            + ---*tau*r1*s0 - ---*tau*r1*s1 - ---*tau*r1 + ---*tau*s0
+               2               2               2            2
 
-\tau ^{-1}\times
+               1             2                         1    2    1
+            - ---*tau*s1 - i1  - i1*r0 + i1*r1 + i1 - ---*r0  + ---*r0*r1
+               2                                       4         2
 
-
-\left(-\tau ^2\,\mathit{j}_{1}^2-\tau ^2\,\mathit{j}_{1}\,\mathit{s}_{0}+\tau ^2\,\mathit{j}_{1}\,\mathit{s}_{1}+\tau ^2\,\mathit{j}_{1}-\frac{1}{4}\,\tau ^2\,\mathit{s}_{0}^2+\frac{1}{2}\,\tau ^2\,\mathit{s}_{0}\,\mathit{s}_{1}+\frac{1}{2}\,\tau ^2\,\mathit{s}_{0}-\frac{1}{4}\,\tau ^2\,\mathit{s}_{1}^2-\frac{1}{2}\,\tau ^2\,\mathit{s}_{1}-2\,\tau \,\mathit{i}_{1}\,\mathit{j}_{1}-\tau \,\mathit{i}_{1}\,\mathit{s}_{0}\right.
-
-
-\mathrm{}+\tau \,\mathit{i}_{1}\,\mathit{s}_{1}+\tau \,\mathit{i}_{1}-\tau \,\mathit{j}_{1}\,\mathit{r}_{0}+\tau \,\mathit{j}_{1}\,\mathit{r}_{1}+\tau \,\mathit{j}_{1}-\frac{1}{2}\,\tau \,\mathit{r}_{0}\,\mathit{s}_{0}+\frac{1}{2}\,\tau \,\mathit{r}_{0}\,\mathit{s}_{1}+\frac{1}{2}\,\tau \,\mathit{r}_{0}+\frac{1}{2}\,\tau \,\mathit{r}_{1}\,\mathit{s}_{0}-\frac{1}{2}\,\tau \,\mathit{r}_{1}\,\mathit{s}_{1}-\frac{1}{2}\,\tau \,\mathit{r}_{1}+\frac{1}{2}\,\tau \,\mathit{s}_{0}-
-
-
-\left.\left.\frac{1}{2}\,\tau \,\mathit{s}_{1}-\mathit{i}_{1}^2-\mathit{i}_{1}\,\mathit{r}_{0}+\mathit{i}_{1}\,\mathit{r}_{1}+\mathit{i}_{1}-\frac{1}{4}\,\mathit{r}_{0}^2+\frac{1}{2}\,\mathit{r}_{0}\,\mathit{r}_{1}+\frac{1}{2}\,\mathit{r}_{0}-\frac{1}{4}\,\mathit{r}_{1}^2-\frac{1}{2}\,\mathit{r}_{1}\right)\right\}
+               1        1    2    1
+            + ---*r0 - ---*r1  - ---*r1)}
+               2        4         2
 
 solve(g_ff_factor_rhs(r0, s0, r1, s1, h2, i1, j1), h2);
 
 
-\left\{\mathit{h}_{2}=\right.
+       -1        2   2      2            2            2       1     2   2
+{h2=tau  *( - tau *j1  + tau *j1*s0 + tau *j1*s1 + tau *j1 - ---*tau *s0
+                                                              4
 
+               1     2          1     2       1     2   2    1     2
+            - ---*tau *s0*s1 - ---*tau *s0 - ---*tau *s1  - ---*tau *s1
+               2                2             4              2
 
-\tau ^{-1}\times
+            - 2*tau*i1*j1 + tau*i1*s0 + tau*i1*s1 + tau*i1 + tau*j1*r0
 
+                                    1               1               1
+            + tau*j1*r1 + tau*j1 - ---*tau*r0*s0 - ---*tau*r0*s1 - ---*tau*r0
+                                    2               2               2
 
-\left(-\tau ^2\,\mathit{j}_{1}^2+\tau ^2\,\mathit{j}_{1}\,\mathit{s}_{0}+\tau ^2\,\mathit{j}_{1}\,\mathit{s}_{1}+\tau ^2\,\mathit{j}_{1}-\frac{1}{4}\,\tau ^2\,\mathit{s}_{0}^2-\frac{1}{2}\,\tau ^2\,\mathit{s}_{0}\,\mathit{s}_{1}-\frac{1}{2}\,\tau ^2\,\mathit{s}_{0}-\frac{1}{4}\,\tau ^2\,\mathit{s}_{1}^2-\frac{1}{2}\,\tau ^2\,\mathit{s}_{1}-2\,\tau \,\mathit{i}_{1}\,\mathit{j}_{1}+\tau \,\mathit{i}_{1}\,\mathit{s}_{0}\right.
+               1               1               1            1
+            - ---*tau*r1*s0 - ---*tau*r1*s1 - ---*tau*r1 - ---*tau*s0
+               2               2               2            2
 
+               1             2                         1    2    1
+            - ---*tau*s1 - i1  + i1*r0 + i1*r1 + i1 - ---*r0  - ---*r0*r1
+               2                                       4         2
 
-\mathrm{}+\tau \,\mathit{i}_{1}\,\mathit{s}_{1}+\tau \,\mathit{i}_{1}+\tau \,\mathit{j}_{1}\,\mathit{r}_{0}+\tau \,\mathit{j}_{1}\,\mathit{r}_{1}+\tau \,\mathit{j}_{1}-\frac{1}{2}\,\tau \,\mathit{r}_{0}\,\mathit{s}_{0}-\frac{1}{2}\,\tau \,\mathit{r}_{0}\,\mathit{s}_{1}-\frac{1}{2}\,\tau \,\mathit{r}_{0}-\frac{1}{2}\,\tau \,\mathit{r}_{1}\,\mathit{s}_{0}-\frac{1}{2}\,\tau \,\mathit{r}_{1}\,\mathit{s}_{1}-\frac{1}{2}\,\tau \,\mathit{r}_{1}-\frac{1}{2}\,\tau \,\mathit{s}_{0}-
+               1        1    2    1
+            - ---*r0 - ---*r1  - ---*r1),
+               2        4         2
 
+       -1        2   2      2            2            2       1     2   2
+ h2=tau  *( - tau *j1  - tau *j1*s0 + tau *j1*s1 + tau *j1 - ---*tau *s0
+                                                              4
 
-\left.\frac{1}{2}\,\tau \,\mathit{s}_{1}-\mathit{i}_{1}^2+\mathit{i}_{1}\,\mathit{r}_{0}+\mathit{i}_{1}\,\mathit{r}_{1}+\mathit{i}_{1}-\frac{1}{4}\,\mathit{r}_{0}^2-\frac{1}{2}\,\mathit{r}_{0}\,\mathit{r}_{1}-\frac{1}{2}\,\mathit{r}_{0}-\frac{1}{4}\,\mathit{r}_{1}^2-\frac{1}{2}\,\mathit{r}_{1}\right),
+               1     2          1     2       1     2   2    1     2
+            + ---*tau *s0*s1 + ---*tau *s0 - ---*tau *s1  - ---*tau *s1
+               2                2             4              2
 
+            - 2*tau*i1*j1 - tau*i1*s0 + tau*i1*s1 + tau*i1 - tau*j1*r0
 
-\mathit{h}_{2}=
+                                    1               1               1
+            + tau*j1*r1 + tau*j1 - ---*tau*r0*s0 + ---*tau*r0*s1 + ---*tau*r0
+                                    2               2               2
 
+               1               1               1            1
+            + ---*tau*r1*s0 - ---*tau*r1*s1 - ---*tau*r1 + ---*tau*s0
+               2               2               2            2
 
-\tau ^{-1}\times
+               1             2                         1    2    1
+            - ---*tau*s1 - i1  - i1*r0 + i1*r1 + i1 - ---*r0  + ---*r0*r1
+               2                                       4         2
 
-
-\left(-\tau ^2\,\mathit{j}_{1}^2-\tau ^2\,\mathit{j}_{1}\,\mathit{s}_{0}+\tau ^2\,\mathit{j}_{1}\,\mathit{s}_{1}+\tau ^2\,\mathit{j}_{1}-\frac{1}{4}\,\tau ^2\,\mathit{s}_{0}^2+\frac{1}{2}\,\tau ^2\,\mathit{s}_{0}\,\mathit{s}_{1}+\frac{1}{2}\,\tau ^2\,\mathit{s}_{0}-\frac{1}{4}\,\tau ^2\,\mathit{s}_{1}^2-\frac{1}{2}\,\tau ^2\,\mathit{s}_{1}-2\,\tau \,\mathit{i}_{1}\,\mathit{j}_{1}-\tau \,\mathit{i}_{1}\,\mathit{s}_{0}\right.
-
-
-\mathrm{}+\tau \,\mathit{i}_{1}\,\mathit{s}_{1}+\tau \,\mathit{i}_{1}-\tau \,\mathit{j}_{1}\,\mathit{r}_{0}+\tau \,\mathit{j}_{1}\,\mathit{r}_{1}+\tau \,\mathit{j}_{1}-\frac{1}{2}\,\tau \,\mathit{r}_{0}\,\mathit{s}_{0}+\frac{1}{2}\,\tau \,\mathit{r}_{0}\,\mathit{s}_{1}+\frac{1}{2}\,\tau \,\mathit{r}_{0}+\frac{1}{2}\,\tau \,\mathit{r}_{1}\,\mathit{s}_{0}-\frac{1}{2}\,\tau \,\mathit{r}_{1}\,\mathit{s}_{1}-\frac{1}{2}\,\tau \,\mathit{r}_{1}+\frac{1}{2}\,\tau \,\mathit{s}_{0}-
-
-
-\left.\left.\frac{1}{2}\,\tau \,\mathit{s}_{1}-\mathit{i}_{1}^2-\mathit{i}_{1}\,\mathit{r}_{0}+\mathit{i}_{1}\,\mathit{r}_{1}+\mathit{i}_{1}-\frac{1}{4}\,\mathit{r}_{0}^2+\frac{1}{2}\,\mathit{r}_{0}\,\mathit{r}_{1}+\frac{1}{2}\,\mathit{r}_{0}-\frac{1}{4}\,\mathit{r}_{1}^2-\frac{1}{2}\,\mathit{r}_{1}\right)\right\}
+               1        1    2    1
+            + ---*r0 - ---*r1  - ---*r1)}
+               2        4         2
 
 g_ff_factor_lhs(r0, s0, r1, s1, h2, i1, j1) / g_ff_factor_rhs(r0, s0, r1, s1, h2, i1, j1);
 
@@ -846,53 +1177,95 @@ g_ff_factor_lhs(r0, s0, r1, s1, h2, i1, j1) / g_ff_factor_rhs(r0, s0, r1, s1, h2
 1
 
 
+% <h2|Phi(w, singvec_{r1,s1}|h1>)|h0> / w^{h2-h1-h0-r1*s1}
+
 f_fusion(1, 1, 2, 2, h2, tau);
 
 
-\tau ^{-4}\times
+   -4    9      8    3      7       3      7    1     6   2    1     6
+tau  *(-----*tau  - ----*tau *h2 + ----*tau  - ---*tau *h2  - ---*tau *h2
+        256          16             16          8              2
 
+           15     6      5   3      5   2    3      5       3      5      4   4
+        + ----*tau  + tau *h2  - tau *h2  + ----*tau *h2 - ----*tau  + tau *h2
+           64                                16             16
 
-\left(\frac{9}{256}\,\tau ^8-\frac{3}{16}\,\tau ^7\,\mathit{h}_{2}+\frac{3}{16}\,\tau ^7-\frac{1}{8}\,\tau ^6\,\mathit{h}_{2}^2-\frac{1}{2}\,\tau ^6\,\mathit{h}_{2}+\frac{15}{64}\,\tau ^6+\tau ^5\,\mathit{h}_{2}^3-\tau ^5\,\mathit{h}_{2}^2+\frac{3}{16}\,\tau ^5\,\mathit{h}_{2}-\frac{3}{16}\,\tau ^5+\tau ^4\,\mathit{h}_{2}^4-\right.
+           3     4   2      4       69      4      3   3      3   2
+        - ---*tau *h2  + tau *h2 - -----*tau  + tau *h2  - tau *h2
+           4                        128
 
+           3      3       3      3    1     2   2    1     2       15     2
+        + ----*tau *h2 - ----*tau  - ---*tau *h2  - ---*tau *h2 + ----*tau
+           16             16          8              2             64
 
-\frac{3}{4}\,\tau ^4\,\mathit{h}_{2}^2+\tau ^4\,\mathit{h}_{2}-\frac{69}{128}\,\tau ^4+\tau ^3\,\mathit{h}_{2}^3-\tau ^3\,\mathit{h}_{2}^2+\frac{3}{16}\,\tau ^3\,\mathit{h}_{2}-\frac{3}{16}\,\tau ^3-\frac{1}{8}\,\tau ^2\,\mathit{h}_{2}^2-\frac{1}{2}\,\tau ^2\,\mathit{h}_{2}+\frac{15}{64}\,\tau ^2-\frac{3}{16}\,\tau \,\mathit{h}_{2}+\frac{3}{16}\,\tau +
-
-
-\left.\frac{9}{256}\right)
+           3             3           9
+        - ----*tau*h2 + ----*tau + -----)
+           16            16         256
 
 f_fusion_fact(1, 1, 2, 2, h2, tau);
 
 
-\left\{\mathit{num}=\right.
+                       2
+{num={{4*h2*tau + 3*tau  + 6*tau + 3,1},
 
+                       2
+      {4*h2*tau + 3*tau  - 2*tau - 1,1},
 
-\left\{\left\{4\,\mathit{h}_{2}\,\tau +3\,\tau ^2+6\,\tau +3,1\right\},\left\{4\,\mathit{h}_{2}\,\tau +3\,\tau ^2-2\,\tau -1,1\right\},\left\{4\,\mathit{h}_{2}\,\tau -\tau ^2-2\,\tau +3,1\right\},\left\{4\,\mathit{h}_{2}\,\tau -\tau ^2-2\,\tau -1,1\right\}\right\}
+                     2
+      {4*h2*tau - tau  - 2*tau + 3,1},
 
+                     2
+      {4*h2*tau - tau  - 2*tau - 1,1}},
 
-\left.,\mathit{den}=256\,\tau ^4\right\}
+            4
+ den=256*tau }
 
 f_fusion_sol(1, 1, 2, 2, h2, tau);
 
 
-\left\{\mathit{h}_{2}=\frac{\tau ^2+2\,\tau +1}{4\,\tau },\mathit{h}_{2}=\frac{\tau ^2+2\,\tau -3}{4\,\tau },\mathit{h}_{2}=\frac{-3\,\tau ^2+2\,\tau +1}{4\,\tau },\mathit{h}_{2}=\frac{-3\,\tau ^2-6\,\tau -3}{4\,\tau }\right\}
+        2
+     tau  + 2*tau + 1
+{h2=------------------,
+          4*tau
+
+        2
+     tau  + 2*tau - 3
+ h2=------------------,
+          4*tau
+
+             2
+      - 3*tau  + 2*tau + 1
+ h2=-----------------------,
+             4*tau
+
+             2
+      - 3*tau  - 6*tau - 3
+ h2=-----------------------}
+             4*tau
 
 
 f_rhs := f_fusion_rhs(1, 1, 2, 2, h2, tau);
 
 
-\mathit{f\_rhs}\coloneqq 
+            -4    9      8    3      7       3      7    1     6   2
+f_rhs := tau  *(-----*tau  - ----*tau *h2 + ----*tau  - ---*tau *h2
+                 256          16             16          8
 
+                    1     6       15     6      5   3      5   2    3      5
+                 - ---*tau *h2 + ----*tau  + tau *h2  - tau *h2  + ----*tau *h2
+                    2             64                                16
 
-\tau ^{-4}\times
+                    3      5      4   4    3     4   2      4       69      4
+                 - ----*tau  + tau *h2  - ---*tau *h2  + tau *h2 - -----*tau
+                    16                     4                        128
 
+                      3   3      3   2    3      3       3      3    1     2   2
+                 + tau *h2  - tau *h2  + ----*tau *h2 - ----*tau  - ---*tau *h2
+                                          16             16          8
 
-\left(\frac{9}{256}\,\tau ^8-\frac{3}{16}\,\tau ^7\,\mathit{h}_{2}+\frac{3}{16}\,\tau ^7-\frac{1}{8}\,\tau ^6\,\mathit{h}_{2}^2-\frac{1}{2}\,\tau ^6\,\mathit{h}_{2}+\frac{15}{64}\,\tau ^6+\tau ^5\,\mathit{h}_{2}^3-\tau ^5\,\mathit{h}_{2}^2+\frac{3}{16}\,\tau ^5\,\mathit{h}_{2}-\frac{3}{16}\,\tau ^5+\tau ^4\,\mathit{h}_{2}^4-\right.
-
-
-\frac{3}{4}\,\tau ^4\,\mathit{h}_{2}^2+\tau ^4\,\mathit{h}_{2}-\frac{69}{128}\,\tau ^4+\tau ^3\,\mathit{h}_{2}^3-\tau ^3\,\mathit{h}_{2}^2+\frac{3}{16}\,\tau ^3\,\mathit{h}_{2}-\frac{3}{16}\,\tau ^3-\frac{1}{8}\,\tau ^2\,\mathit{h}_{2}^2-\frac{1}{2}\,\tau ^2\,\mathit{h}_{2}+\frac{15}{64}\,\tau ^2-\frac{3}{16}\,\tau \,\mathit{h}_{2}+\frac{3}{16}\,\tau +
-
-
-\left.\frac{9}{256}\right)
+                    1     2       15     2    3             3           9
+                 - ---*tau *h2 + ----*tau  - ----*tau*h2 + ----*tau + -----)
+                    2             64          16            16         256
 
 f_fusion(1, 1, 2, 2, h2, tau) / f_rhs;
 
@@ -902,19 +1275,42 @@ f_fusion(1, 1, 2, 2, h2, tau) / f_rhs;
 {num = factorize(num(f_rhs)), den = den(f_rhs)};
 
 
-\left\{\mathit{num}=\right.
+                       2
+{num={{4*h2*tau + 3*tau  + 6*tau + 3,1},
 
+                       2
+      {4*h2*tau + 3*tau  - 2*tau - 1,1},
 
-\left\{\left\{4\,\mathit{h}_{2}\,\tau +3\,\tau ^2+6\,\tau +3,1\right\},\left\{4\,\mathit{h}_{2}\,\tau +3\,\tau ^2-2\,\tau -1,1\right\},\left\{4\,\mathit{h}_{2}\,\tau -\tau ^2-2\,\tau +3,1\right\},\left\{4\,\mathit{h}_{2}\,\tau -\tau ^2-2\,\tau -1,1\right\}\right\}
+                     2
+      {4*h2*tau - tau  - 2*tau + 3,1},
 
+                     2
+      {4*h2*tau - tau  - 2*tau - 1,1}},
 
-\left.,\mathit{den}=256\,\tau ^4\right\}
+            4
+ den=256*tau }
 
 solve(f_rhs, h2);
 
 
-\left\{\mathit{h}_{2}=\tau ^{-1}\,\left(\frac{1}{4}\,\tau ^2+\frac{1}{2}\,\tau +\frac{1}{4}\right),\mathit{h}_{2}=\tau ^{-1}\,\left(\frac{1}{4}\,\tau ^2+\frac{1}{2}\,\tau -\frac{3}{4}\right),\mathit{h}_{2}=\tau ^{-1}\,\left(-\frac{3}{4}\,\tau ^2+\frac{1}{2}\,\tau +\frac{1}{4}\right),\mathit{h}_{2}=\tau ^{-1}\,\left(-\frac{3}{4}\,\tau ^2-\frac{3}{2}\,\tau -\frac{3}{4}\right)\right\}
+       -1   1     2    1         1
+{h2=tau  *(---*tau  + ---*tau + ---),
+            4          2         4
 
+       -1   1     2    1         3
+ h2=tau  *(---*tau  + ---*tau - ---),
+            4          2         4
+
+       -1      3     2    1         1
+ h2=tau  *( - ---*tau  + ---*tau + ---),
+               4          2         4
+
+       -1      3     2    3         3
+ h2=tau  *( - ---*tau  - ---*tau - ---)}
+               4          2         4
+
+
+% Verify the explicit factorization of f_fusion(r0, s0, r1, s1, h2, tau)
 
 f_fusion(2, 1, 1, 1, h2, tau) / f_fusion_rhs(2, 1, 1, 1, h2, tau);
 
@@ -952,40 +1348,219 @@ f_fusion(2, 2, 4, 2, h2, tau) / f_fusion_rhs(2, 2, 4, 2, h2, tau);
 1
 
 
+% the conformal weights of the minimal model for c=c(-p/q)
+
 f_mm45 := f_minimal_model(4, 5);
 
 
-\mathit{f\_mm}_{45}\coloneqq 
+              7683984   5    102773286   4    6674020353   3    10040565843   2
+f_mm45 := h*(---------*h  - -----------*h  + ------------*h  - -------------*h
+               15625           78125           6250000           31250000
 
-
-h\,\left(\frac{7683984}{15625}\,h^5-\frac{102773286}{78125}\,h^4+\frac{6674020353}{6250000}\,h^3-\frac{10040565843}{31250000}\,h^2+\frac{3747382947}{125000000}\,h-\frac{90767061}{125000000}\right)
+                 3747382947       90767061
+              + ------------*h - -----------)
+                 125000000        125000000
 
 factorize(f_mm45);
 
 
-\left\{\frac{1}{125000000},\left\{480249,1\right\},\left\{80\,h-3,1\right\},\left\{16\,h-7,1\right\},\left\{10\,h-1,1\right\},\left\{5\,h-3,1\right\},\left\{2\,h-3,1\right\},\left\{h,1\right\}\right\}
+      1
+{-----------,
+  125000000
+
+ {480249,1},
+
+ {80*h - 3,1},
+
+ {16*h - 7,1},
+
+ {10*h - 1,1},
+
+ {5*h - 3,1},
+
+ {2*h - 3,1},
+
+ {h,1}}
 
 solve(f_mm45, h);
 
 
-\left\{h=\frac{7}{16},h=\frac{3}{80},h=\frac{3}{5},h=\frac{3}{2},h=\frac{1}{10},h=0\right\}
+    7
+{h=----,
+    16
 
+    3
+ h=----,
+    80
+
+    3
+ h=---,
+    5
+
+    3
+ h=---,
+    2
+
+    1
+ h=----,
+    10
+
+ h=0}
+
+
+f_minimal_model_fact(2, 3);
+
+
+     2
+{ - ---,{h=0}}
+     3
+
+f_minimal_model_fact(2, 5);
+
+
+  36      -1
+{----,{h=----,h=0}}
+  25      5
+
+f_minimal_model_fact(2, 7);
+
+
+     1800      -2     -3
+{ - ------,{h=----,h=----,h=0}}
+     343       7      7
+
+f_minimal_model_fact(2, 9);
+
+
+  19600      -1     -2     -5
+{-------,{h=----,h=----,h=----,h=0}}
+   729       3      3      9
+
+f_minimal_model_fact(2, 11);
+
+
+     28576800
+{ - ----------,
+      161051
+
+     -4
+ {h=----,
+     11
+
+     -7
+  h=----,
+     11
+
+     -9
+  h=----,
+     11
+
+     -10
+  h=-----,
+     11
+
+  h=0}}
+
+
+f_minimal_model_fact(3, 4);
+
+
+     100      1      1
+{ - -----,{h=----,h=---,h=0}}
+     27       16     2
+
+f_minimal_model_fact(3, 5);
+
+
+  802816      3     1     -1
+{--------,{h=---,h=---,h=----,h=0}}
+  50625       4     5     20
+
+f_minimal_model_fact(3, 7);
+
+
+  50751078400
+{-------------,
+   85766121
+
+     5
+ {h=---,
+     4
+
+     4
+  h=---,
+     7
+
+     3
+  h=----,
+     28
+
+     -1
+  h=----,
+     7
+
+     -5
+  h=----,
+     28
+
+  h=0}}
+
+
+f_minimal_model_fact(4, 5);
+
+
+  7683984
+{---------,
+   15625
+
+     7
+ {h=----,
+     16
+
+     3
+  h=----,
+     80
+
+     3
+  h=---,
+     5
+
+     3
+  h=---,
+     2
+
+     1
+  h=----,
+     10
+
+  h=0}}
+
+
+% Verify explicit simplification of f_minimal_model_factor_lhs(p, q)
 
 f_minimal_model_factor_lhs(p, q, r, s, h);
 
 
--4\,h\,p\,q^{-1}\,s^2-4\,h\,p^{-1}\,q\,r^2+8\,h\,r\,s+p^2\,q^{-2}\,s^4-p^2\,q^{-2}\,s^2-4\,p\,q^{-1}\,r\,s^3+2\,p\,q^{-1}\,r\,s+2\,p\,q^{-1}\,s^2-4\,p^{-1}\,q\,r^3\,s+
+          -1  2        -1    2              2  -2  4    2  -2  2        -1    3
+ - 4*h*p*q  *s  - 4*h*p  *q*r  + 8*h*r*s + p *q  *s  - p *q  *s  - 4*p*q  *r*s
 
+        -1            -1  2      -1    3        -1    2      -1
+ + 2*p*q  *r*s + 2*p*q  *s  - 4*p  *q*r *s + 2*p  *q*r  + 2*p  *q*r*s
 
-2\,p^{-1}\,q\,r^2+2\,p^{-1}\,q\,r\,s+p^{-2}\,q^2\,r^4-p^{-2}\,q^2\,r^2+6\,r^2\,s^2-r^2-4\,r\,s-s^2
+    -2  2  4    -2  2  2      2  2    2            2
+ + p  *q *r  - p  *q *r  + 6*r *s  - r  - 4*r*s - s
 
 f_minimal_model_factor_rhs(p, q, r, w, h);
 
 
--4\,h\,p\,q^{-1}\,s^2-4\,h\,p^{-1}\,q\,r^2+8\,h\,r\,s+p^2\,q^{-2}\,s^4-p^2\,q^{-2}\,s^2-4\,p\,q^{-1}\,r\,s^3+2\,p\,q^{-1}\,r\,s+2\,p\,q^{-1}\,s^2-4\,p^{-1}\,q\,r^3\,s+
+          -1  2        -1    2              2  -2  4    2  -2  2        -1    3
+ - 4*h*p*q  *s  - 4*h*p  *q*r  + 8*h*r*s + p *q  *s  - p *q  *s  - 4*p*q  *r*s
 
+        -1            -1  2      -1    3        -1    2      -1
+ + 2*p*q  *r*s + 2*p*q  *s  - 4*p  *q*r *s + 2*p  *q*r  + 2*p  *q*r*s
 
-2\,p^{-1}\,q\,r^2+2\,p^{-1}\,q\,r\,s+p^{-2}\,q^2\,r^4-p^{-2}\,q^2\,r^2+6\,r^2\,s^2-r^2-4\,r\,s-s^2
+    -2  2  4    -2  2  2      2  2    2            2
+ + p  *q *r  - p  *q *r  + 6*r *s  - r  - 4*r*s - s
 
 f_minimal_model_factor_lhs(p, q, r, s, h) / f_minimal_model_factor_rhs(p, q, r, s, h);
 
@@ -993,52 +1568,376 @@ f_minimal_model_factor_lhs(p, q, r, s, h) / f_minimal_model_factor_rhs(p, q, r, 
 1
 
 
-f_minimal_model_fact(2, 3);
+% table of the conformal weights of the minimal model for c=c(-p/q)
+
+table_minimal_model(2, 3);
 
 
-\left\{-\frac{2}{3},\left\{h=0\right\}\right\}
-
-f_minimal_model_fact(2, 5);
+[0  0]
 
 
-\left\{\frac{36}{25},\left\{h=\frac{-1}{5},h=0\right\}\right\}
-
-f_minimal_model_fact(2, 7);
+table_minimal_model(2, 5);
 
 
-\left\{-\frac{1800}{343},\left\{h=\frac{-2}{7},h=\frac{-3}{7},h=0\right\}\right\}
-
-f_minimal_model_fact(2, 9);
-
-
-\left\{\frac{19600}{729},\left\{h=\frac{-1}{3},h=\frac{-2}{3},h=\frac{-5}{9},h=0\right\}\right\}
-
-f_minimal_model_fact(2, 11);
+[       1       1    ]
+[0   - ---   - ---  0]
+[       5       5    ]
 
 
-\left\{-\frac{28576800}{161051},\left\{h=\frac{-4}{11},h=\frac{-7}{11},h=\frac{-9}{11},h=\frac{-10}{11},h=0\right\}\right\}
+table_minimal_model(2, 7);
 
 
-f_minimal_model_fact(3, 4);
+[       2       3       3       2    ]
+[0   - ---   - ---   - ---   - ---  0]
+[       7       7       7       7    ]
 
 
-\left\{-\frac{100}{27},\left\{h=\frac{1}{16},h=\frac{1}{2},h=0\right\}\right\}
-
-f_minimal_model_fact(3, 5);
+table_minimal_model(2, 9);
 
 
-\left\{\frac{802816}{50625},\left\{h=\frac{3}{4},h=\frac{1}{5},h=\frac{-1}{20},h=0\right\}\right\}
-
-f_minimal_model_fact(3, 7);
-
-
-\left\{\frac{50751078400}{85766121},\left\{h=\frac{5}{4},h=\frac{4}{7},h=\frac{3}{28},h=\frac{-1}{7},h=\frac{-5}{28},h=0\right\}\right\}
+[       1       5       2       2       5       1    ]
+[0   - ---   - ---   - ---   - ---   - ---   - ---  0]
+[       3       9       3       3       9       3    ]
 
 
-f_minimal_model_fact(4, 5);
+table_minimal_model(2, 11);
 
 
-\left\{\frac{7683984}{15625},\left\{h=\frac{7}{16},h=\frac{3}{80},h=\frac{3}{5},h=\frac{3}{2},h=\frac{1}{10},h=0\right\}\right\}
+[       4        7        9        10       10       9        7        4     ]
+[0   - ----   - ----   - ----   - ----   - ----   - ----   - ----   - ----  0]
+[       11       11       11       11       11       11       11       11    ]
+
+
+table_minimal_model(2, 13);
+
+
+           5       9       12      14      15      15      14      12      9
+mat((0, - ----, - ----, - ----, - ----, - ----, - ----, - ----, - ----, - ----,
+           13      13      13      13      13      13      13      13      13
+
+         5
+      - ----,0))
+         13
+
+
+
+table_minimal_model(3, 4);
+
+
+[      1     1 ]
+[ 0   ----  ---]
+[      16    2 ]
+[              ]
+[ 1    1       ]
+[---  ----   0 ]
+[ 2    16      ]
+
+
+table_minimal_model(3, 5);
+
+
+[         1       1      3 ]
+[ 0    - ----    ---    ---]
+[         20      5      4 ]
+[                          ]
+[ 3      1         1       ]
+[---    ---     - ----   0 ]
+[ 4      5         20      ]
+
+
+table_minimal_model(3, 7);
+
+
+[         5        1     3        4      5 ]
+[ 0    - ----   - ---   ----     ---    ---]
+[         28       7     28       7      4 ]
+[                                          ]
+[ 5      4       3         1       5       ]
+[---    ---     ----    - ---   - ----   0 ]
+[ 4      7       28        7       28      ]
+
+
+table_minimal_model(3, 8);
+
+
+[         7        1       3      1       25      3 ]
+[ 0    - ----   - ---   - ----   ---     ----    ---]
+[         32       4       32     4       32      2 ]
+[                                                   ]
+[ 3     25       1         3        1       7       ]
+[---   ----     ---     - ----   - ---   - ----   0 ]
+[ 2     32       4         32       4       32      ]
+
+
+table_minimal_model(3, 10);
+
+
+[       11       2       3       1     1       3       49      ]
+[0   - ----   - ---   - ---   - ---   ---     ---     ----    2]
+[       40       5       8       5     8       5       40      ]
+[                                                              ]
+[     49       3       1         1       3       2       11    ]
+[2   ----     ---     ---     - ---   - ---   - ---   - ----  0]
+[     40       5       8         5       8       5       40    ]
+
+
+table_minimal_model(3, 11);
+
+
+           13      5       21      4       5    3    35   16   9
+mat((0, - ----, - ----, - ----, - ----, - ----,----,----,----,---),
+           44      11      44      11      44   11   44   11   4
+
+      9   16   35   3       5       4       21      5       13
+    (---,----,----,----, - ----, - ----, - ----, - ----, - ----,0))
+      4   11   44   11      44      11      44      11      44
+
+
+table_minimal_model(3, 13);
+
+
+           17      7       33      8       25      3    7    8    63   25   11
+mat((0, - ----, - ----, - ----, - ----, - ----, - ----,----,----,----,----,----)
+           52      13      52      13      52      13   52   13   52   13   4
+
+     ,
+
+      11   25   63   8    7       3       25      8       33      7       17
+    (----,----,----,----,----, - ----, - ----, - ----, - ----, - ----, - ----,0)
+      4    13   52   13   52      13      52      13      52      13      52
+
+)
+
+
+
+table_minimal_model(4, 5);
+
+
+[       1     3     3  ]
+[ 0    ----  ---   --- ]
+[       10    5     2  ]
+[                      ]
+[ 7     3     3     7  ]
+[----  ----  ----  ----]
+[ 16    80    80    16 ]
+[                      ]
+[ 3     3     1        ]
+[---   ---   ----   0  ]
+[ 2     5     10       ]
+
+
+table_minimal_model(4, 7);
+
+
+[          1       1         9        10      5  ]
+[ 0     - ----    ---       ----     ----    --- ]
+[          14      7         14       7       2  ]
+[                                                ]
+[ 13     27          5         5      27      13 ]
+[----   -----    - -----   - -----   -----   ----]
+[ 16     112        112       112     112     16 ]
+[                                                ]
+[ 5      10        9         1          1        ]
+[---    ----      ----      ---      - ----   0  ]
+[ 2      7         14        7          14       ]
+
+
+table_minimal_model(4, 9);
+
+
+[          1       1      1        2       25      7      7  ]
+[ 0     - ---   - ---    ---      ---     ----    ---    --- ]
+[          6       9      6        3       18      3      2  ]
+[                                                            ]
+[ 19     25     11         7        7     11       25     19 ]
+[----   ----   -----    - ----   - ----  -----    ----   ----]
+[ 16     48     144        48       48    144      48     16 ]
+[                                                            ]
+[ 7      7       25       2        1         1       1       ]
+[---    ---     ----     ---      ---     - ---   - ---   0  ]
+[ 2      3       18       3        6         9       6       ]
+
+
+table_minimal_model(4, 11);
+
+
+           5       3       3    2    15   15   49   36   9
+mat((0, - ----, - ----, - ----,----,----,----,----,----,---),
+           22      11      22   11   22   11   22   11   2
+
+      25   147   51       13       45       45       13    51    147   25
+    (----,-----,-----, - -----, - -----, - -----, - -----,-----,-----,----),
+      16   176   176      176      176      176      176   176   176   16
+
+      9   36   49   15   15   2       3       3       5
+    (---,----,----,----,----,----, - ----, - ----, - ----,0))
+      2   11   22   11   22   11      22      11      22
+
+
+table_minimal_model(4, 13);
+
+
+           7       5       9       2    5    9    35   28   81   55   11
+mat((0, - ----, - ----, - ----, - ----,----,----,----,----,----,----,----),
+           26      13      26      13   26   13   26   13   26   13   2
+
+      31   243   115   19       45       77       77       45    19    115
+    (----,-----,-----,-----, - -----, - -----, - -----, - -----,-----,-----,
+      16   208   208   208      208      208      208      208   208   208
+
+      243   31
+     -----,----),
+      208   16
+
+      11   55   81   28   35   9    5       2       9       5       7
+    (----,----,----,----,----,----,----, - ----, - ----, - ----, - ----,0))
+      2    13   26   13   26   13   26      13      26      13      26
+
+
+
+table_minimal_model(5, 6);
+
+
+[      1     2     13      ]
+[ 0   ---   ---   ----   3 ]
+[      8     3     8       ]
+[                          ]
+[ 2    1     1     21    7 ]
+[---  ----  ----  ----  ---]
+[ 5    40    15    40    5 ]
+[                          ]
+[ 7    21    1     1     2 ]
+[---  ----  ----  ----  ---]
+[ 5    40    15    40    5 ]
+[                          ]
+[      13    2     1       ]
+[ 3   ----  ---   ---    0 ]
+[      8     3     8       ]
+
+
+table_minimal_model(5, 7);
+
+
+[       1        3         33      16     15 ]
+[ 0    ----     ---       ----    ----   ----]
+[       28       7         28      7      4  ]
+[                                            ]
+[ 11    3          3       8       117    9  ]
+[----  ----    - -----    ----    -----  --- ]
+[ 20    35        140      35      140    5  ]
+[                                            ]
+[ 9     117      8           3     3      11 ]
+[---   -----    ----     - -----  ----   ----]
+[ 5     140      35         140    35     20 ]
+[                                            ]
+[ 15    16       33        3       1         ]
+[----  ----     ----      ---     ----    0  ]
+[ 4     7        28        7       28        ]
+
+
+table_minimal_model(5, 8);
+
+
+[          1       1      27       7       95      9  ]
+[ 0     - ----    ---    ----     ---     ----    --- ]
+[          32      4      32       4       32      2  ]
+[                                                     ]
+[ 7      27         1      7      9        187     11 ]
+[----   -----    - ----  -----   ----     -----   ----]
+[ 10     160        20    160     20       160     5  ]
+[                                                     ]
+[ 11     187      9        7        1      27      7  ]
+[----   -----    ----    -----   - ----   -----   ----]
+[ 5      160      20      160       20     160     10 ]
+[                                                     ]
+[ 9      95        7      27       1         1        ]
+[---    ----      ---    ----     ---     - ----   0  ]
+[ 2      32        4      32       4         32       ]
+
+
+table_minimal_model(5, 9);
+
+
+[          1       1        7         4        85       11      21 ]
+[ 0     - ----    ---      ----      ---      ----     ----    ----]
+[          12      9        12        3        36       3       4  ]
+[                                                                  ]
+[ 17     4           7        1      11        32       91      13 ]
+[----   ----     - -----   - ----   ----      ----     ----    ----]
+[ 20     15         180       15     60        45       60      5  ]
+[                                                                  ]
+[ 13     91        32       11         1         7      4       17 ]
+[----   ----      ----     ----     - ----   - -----   ----    ----]
+[ 5      60        45       60         15       180     15      20 ]
+[                                                                  ]
+[ 21     11        85        4       7         1          1        ]
+[----   ----      ----      ---     ----      ---      - ----   0  ]
+[ 4      3         36        3       12        9          12       ]
+
+
+table_minimal_model(5, 11);
+
+
+           7       1    9    8    65   27   161   56   27
+mat((0, - ----, - ----,----,----,----,----,-----,----,----),
+           44      11   44   11   44   11   44    11   4
+
+      23   27   13       8       27    7    133   72   493   17
+    (----,----,-----, - ----, - -----,----,-----,----,-----,----),
+      20   55   220      55      220   55   220   55   220   5
+
+      17   493   72   133   7       27       8    13    27   23
+    (----,-----,----,-----,----, - -----, - ----,-----,----,----),
+      5    220   55   220   55      220      55   220   55   20
+
+      27   56   161   27   65   8    9       1       7
+    (----,----,-----,----,----,----,----, - ----, - ----,0))
+      4    11   44    11   44   11   44      11      44
+
+
+table_minimal_model(5, 12);
+
+
+           3       1   1    1   55     49   13   93   15
+mat((0, - ----, - ---,----,---,----,2,----,----,----,----),
+           16      6   16   2   48     16   3    16   2
+
+      13   49   2       11      1      13    3    69   49   209   19
+    (----,----,----, - ----, - ---, - -----,----,----,----,-----,----),
+      10   80   15      80      5      240   10   80   30   80    5
+
+      19   209   49   69   3       13       1      11   2    49   13
+    (----,-----,----,----,----, - -----, - ---, - ----,----,----,----),
+      5    80    30   80   10      240      5      80   15   80   10
+
+      15   93   13   49     55   1   1       1      3
+    (----,----,----,----,2,----,---,----, - ---, - ----,0))
+      2    16   3    16     48   2   16      6      16
+
+
+table_minimal_model(5, 13);
+
+
+           11      3       3    4    45   21   133   48   261   85   33
+mat((0, - ----, - ----, - ----,----,----,----,-----,----,-----,----,----),
+           52      13      52   13   52   13   52    13   52    13   4
+
+      29   48   57       7       63       12   17    33   297   128   777   21
+    (----,----,-----, - ----, - -----, - ----,-----,----,-----,-----,-----,----)
+      20   65   260      65      260      65   260   65   260   65    260   5
+
+     ,
+
+      21   777   128   297   33   17       12      63       7    57    48   29
+    (----,-----,-----,-----,----,-----, - ----, - -----, - ----,-----,----,----)
+      5    260   65    260   65   260      65      260      65   260   65   20
+
+     ,
+
+      33   85   261   48   133   21   45   4       3       3       11
+    (----,----,-----,----,-----,----,----,----, - ----, - ----, - ----,0))
+      4    13   52    13   52    13   52   13      52      13      52
+
 
 
 ;
