@@ -199,7 +199,7 @@ procedure f_fusion_sol(r0, s0, r1, s1, h2, tau); begin
   return solve(f, h2);
 end;
 
-procedure f_minimal_model(p, q); g_ff(p-1, q-1, h, 0, -p/q);
+procedure f_minimal_model(p, q); f_ff(p-1, q-1, h, 0, h, -p/q);
 
 procedure f_minimal_model_fact(p, q); begin
   scalar f := f_minimal_model(p, q);

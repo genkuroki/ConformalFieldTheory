@@ -372,7 +372,7 @@ end;
 \mathit{f\_fusion\_sol}
 
 
-procedure f_minimal_model(p, q); g_ff(p-1, q-1, h, 0, -p/q);
+procedure f_minimal_model(p, q); f_ff(p-1, q-1, h, 0, h, -p/q);
 
 
 \mathit{f\_minimal\_model}
