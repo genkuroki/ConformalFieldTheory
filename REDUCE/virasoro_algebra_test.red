@@ -82,21 +82,41 @@ solve(g_ff_factor_lhs(r0, s0, r1, s1, h2, i1, j1), h2);
 solve(g_ff_factor_rhs(r0, s0, r1, s1, h2, i1, j1), h2);
 g_ff_factor_lhs(r0, s0, r1, s1, h2, i1, j1) / g_ff_factor_rhs(r0, s0, r1, s1, h2, i1, j1);
 
-f_ff(1, 1, 2, 2, h2, tau);
-f_ff_fact(1, 1, 2, 2, h2, tau);
-f_ff_sol(1, 1, 2, 2, h2, tau);
+f_fusion(1, 1, 2, 2, h2, tau);
+f_fusion_fact(1, 1, 2, 2, h2, tau);
+f_fusion_sol(1, 1, 2, 2, h2, tau);
 
-f_rhs := f_ff_rhs(1, 1, 2, 2, h2, tau);
-f_ff(1, 1, 2, 2, h2, tau) / f_rhs;
+f_rhs := f_fusion_rhs(1, 1, 2, 2, h2, tau);
+f_fusion(1, 1, 2, 2, h2, tau) / f_rhs;
 {num = factorize(num(f_rhs)), den = den(f_rhs)};
 solve(f_rhs, h2);
 
-f_ff(2, 1, 1, 1, h2, tau) / f_ff_rhs(2, 1, 1, 1, h2, tau);
-f_ff(2, 2, 1, 2, h2, tau) / f_ff_rhs(2, 2, 1, 2, h2, tau);
-f_ff(3, 2, 2, 3, h2, tau) / f_ff_rhs(3, 2, 2, 3, h2, tau);
-f_ff(2, 1, 2, 4, h2, tau) / f_ff_rhs(2, 1, 2, 4, h2, tau);
-f_ff(1, 1, 3, 3, h2, tau) / f_ff_rhs(1, 1, 3, 3, h2, tau);
-f_ff(1, 2, 3, 3, h2, tau) / f_ff_rhs(1, 2, 3, 3, h2, tau);
-f_ff(2, 2, 4, 2, h2, tau) / f_ff_rhs(2, 2, 4, 2, h2, tau);
+f_fusion(2, 1, 1, 1, h2, tau) / f_fusion_rhs(2, 1, 1, 1, h2, tau);
+f_fusion(2, 2, 1, 2, h2, tau) / f_fusion_rhs(2, 2, 1, 2, h2, tau);
+f_fusion(3, 2, 2, 3, h2, tau) / f_fusion_rhs(3, 2, 2, 3, h2, tau);
+f_fusion(2, 1, 2, 4, h2, tau) / f_fusion_rhs(2, 1, 2, 4, h2, tau);
+f_fusion(1, 1, 3, 3, h2, tau) / f_fusion_rhs(1, 1, 3, 3, h2, tau);
+f_fusion(1, 2, 3, 3, h2, tau) / f_fusion_rhs(1, 2, 3, 3, h2, tau);
+f_fusion(2, 2, 4, 2, h2, tau) / f_fusion_rhs(2, 2, 4, 2, h2, tau);
+
+f_mm45 := f_minimal_model(4, 5);
+factorize(f_mm45);
+solve(f_mm45, h);
+
+f_minimal_model_factor_lhs(p, q, r, s, h);
+f_minimal_model_factor_rhs(p, q, r, w, h);
+f_minimal_model_factor_lhs(p, q, r, s, h) / f_minimal_model_factor_rhs(p, q, r, s, h);
+
+f_minimal_model_fact(2, 3);
+f_minimal_model_fact(2, 5);
+f_minimal_model_fact(2, 7);
+f_minimal_model_fact(2, 9);
+f_minimal_model_fact(2, 11);
+
+f_minimal_model_fact(3, 4);
+f_minimal_model_fact(3, 5);
+f_minimal_model_fact(3, 7);
+
+f_minimal_model_fact(4, 5);
 
 ;end;

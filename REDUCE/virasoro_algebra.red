@@ -175,26 +175,45 @@ procedure g_ff_factor_rhs(r0, s0, r1, s1, h2, i1, j1); begin
   );
 end;
 
-procedure f_ff(r0, s0, r1, s1, h2, tau); begin
+procedure f_ff(r1, s1, h0, h1, h2, tau); g_ff(r1, s1, h0, h0 + h1 - h2, tau);
+
+procedure f_fusion(r0, s0, r1, s1, h2, tau); begin
   scalar h0 := conformalweight(r0, s0, tau);
   scalar h1 := conformalweight(r1, s1, tau);
-  return g_ff(r1, s1, h0, h0 + h1 - h2, tau);
+  return f_ff(r1, s1, h0, h1, h2, tau);
 end;
 
-procedure f_ff_rhs(r0, s0, r1, s1, h2, tau); begin
+procedure f_fusion_rhs(r0, s0, r1, s1, h2, tau); begin
   return ((-1)^(r1*s1) *
     (for i1 := 1:r1 product for j1 := 1:s1 product h2 - cw(r0+r1+1-2*i1, s0+s1+1-2*j1, tau))
   );
 end;
 
-procedure f_ff_fact(r0, s0, r1, s1, h2, tau); begin
-  scalar f := f_ff(r0, s0, r1, s1, h2, tau);
+procedure f_fusion_fact(r0, s0, r1, s1, h2, tau); begin
+  scalar f := f_fusion(r0, s0, r1, s1, h2, tau);
   return {num = factorize(num(f)), den = den(f)};
 end;
 
-procedure f_ff_sol(r0, s0, r1, s1, h2, tau); begin
-  scalar f := f_ff(r0, s0, r1, s1, h2, tau);
+procedure f_fusion_sol(r0, s0, r1, s1, h2, tau); begin
+  scalar f := f_fusion(r0, s0, r1, s1, h2, tau);
   return solve(f, h2);
+end;
+
+procedure f_minimal_model(p, q); g_ff(p-1, q-1, h, 0, -p/q);
+
+procedure f_minimal_model_fact(p, q); begin
+  scalar f := f_minimal_model(p, q);
+  scalar topcoeff := first(reverse(coeff(f, h)));
+  scalar sol := solve(f, h);
+  return {topcoeff, sol};
+end;
+
+procedure f_minimal_model_factor_lhs(p, q, r, s, h); begin
+  return sub(tau=-p/q, g_ff_factor(p-2, q-2, r-1, s-1, h, 0));
+end;
+
+procedure f_minimal_model_factor_rhs(p, q, r, w, h); begin
+  return -4*(q*r - p*s)^2/(p*q) * (h - cw(r, s, -p/q));
 end;
 
 ;end;
