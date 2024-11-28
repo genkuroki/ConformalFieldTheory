@@ -62,6 +62,17 @@ dualmonomials(5);
 
 % Kac determinant
 
+kacmat(2);
+kacdet(2);
+kacdet_t(2, tau);
+kacdet_fact(2, tau);
+kacdet_sol(2, tau);
+
+kd_rhs := kacdet_t_rhs(2, tau);
+kacdet_t(2, tau) / kd_rhs;
+{num = factorize(num(kd_rhs)), den = den(kd_rhs)};
+solve(kd_rhs, h);
+
 kacmat(3);
 kacdet(3);
 kacdet_t(3, tau);
@@ -73,7 +84,32 @@ kacdet_t(3, tau) / kd_rhs;
 {num = factorize(num(kd_rhs)), den = den(kd_rhs)};
 solve(kd_rhs, h);
 
+kacmat(4);
+kacdet(4);
+kacdet_t(4, tau);
+kacdet_fact(4, tau);
+kacdet_sol(4, tau);
+
+kd_rhs := kacdet_t_rhs(4, tau);
+kacdet_t(4, tau) / kd_rhs;
+{num = factorize(num(kd_rhs)), den = den(kd_rhs)};
+solve(kd_rhs, h);
+
 % singular vectors
+
+singvec(1, 2, tau);
+singvec(2, 1, tau);
+singvec(1, 3, tau);
+singvec(3, 1, tau);
+singvec(1, 4, tau);
+singvec(4, 1, tau);
+singvec(2, 2, tau);
+singvec(1, 5, tau);
+singvec(5, 1, tau);
+singvec(1, 6, tau);
+singvec(6, 1, tau);
+singvec(2, 3, tau);
+singvec(3, 2, tau);
 
 lincomb(4);
 ltoz(lincomb(4), 4);

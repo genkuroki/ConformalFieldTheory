@@ -1,0 +1,2553 @@
+Reduce (CSL, rev 6657), 10-Dec-2023 ...
+
+1: in "D:\OneDrive\work\ConformalFieldTheory\REDUCE\virasoro_algebra.red";
+on rat;
+
+
+on div;
+
+
+
+% [FF] B. L. Feigin & D. B. Fuchs, Verma modules over the virasoro algebra
+% Lecture Notes in Mathematics, Volume 1060, 1984, pp. 230--245,
+% Topology,
+% General and Algebraic Topology and Applications,
+% Proceedings of the International Topological Conference held in Leningrad, August 23-27, 1983
+
+% delta - Knonecker's delta (delta(m) = if m = 0 then 1 else 0)
+% c - central charge
+% h - conformal weight
+% x - unknowns
+% z - unknowns
+% tau - Use t instead of t because t is the symbol for true in REDUCE
+% theta - theta^2 = tau
+% l - generators of the Virasoro algebra
+% vec - ket |h> or bra <h| vector
+% vecproj - L(m)*vevproj() = 0 if m < -2
+% gamma - mu + 2h of [FF]
+% vecf - w^{-gamma}
+
+clear delta, c, h, x, z, tau, theta, l, vec, vecproj, gamma, vecf;
+
+
+order h, c, x, z, theta, tau, l;
+
+
+operator delta, l, vec, vecproj;
+
+
+noncom l, vec, vec_proj, vecf;
+
+
+factor l, vec, gamma, vecf;
+
+
+
+let theta**2 = tau;
+
+
+for all m let delta(m) = if m = 0 then 1 else 0;
+
+
+for all m, n such that m > n let l(m)*l(n) = l(n)*l(m) + (m-n)*l(m+n) + c*(m**3-m)*delta(m+n)/12;
+
+
+for all h let vec(h)**2 = 1;
+
+
+for all m, n, h such that m > 0 let l(m)*vec(h) = 0;
+
+
+for all m, n, h such that 0 > n let vec(h)*l(n) = 0;
+
+
+for all h let l(0)*vec(h) = h*vec(h), vec(h)*l(0) = vec(h)*h;
+
+
+let vecproj()**2 = 1;
+
+
+for all m let vecproj()*l(m) = if m < -2 then 0 else if m = -1 then z1*vecproj() else z2*vecproj();
+
+
+for all h, gamma, epsilon let vecf(h, gamma)*vecf(h, epsilon) = 1;
+
+
+*** vecf declared operator 
+
+for all m, h, gamma let l(m)*vecf(h, gamma) = -(-gamma + h*(m+1)) * vecf(h, gamma - m);
+
+
+
+procedure commutator(x, y); x*y - y*x;
+
+
+commutator
+
+
+procedure centralcharge(tau); 6/tau + 13 + 6*tau;
+
+
+centralcharge
+
+procedure conformalweight(r, s, tau) = (1-r**2)/(4*tau) + (1-r*s)/2 + (1-s**2)/4*tau;
+
+
+conformalweight
+
+procedure cw(r, s, tau); conformalweight(r, s, tau);
+
+
+cw
+
+
+procedure partitions(n); begin
+  if n < 0 then return {};
+  if n = 0 then return {{}};
+  if n = 1 then return {{1}};
+  return append(
+    for each p in partitions(n-1) collect 1 . p,
+    for each p in partitions(n-1) join
+      if length(p)=1 or first(p) < second(p) then {(first(p)+1) . rest(p)} else {}
+  );
+end;
+
+
+partitions
+
+
+% partnum(n) = partition number of n
+procedure partnum(n); length(partitions(n));
+
+
+partnum
+
+
+% Define degree by deg(L(-m)) = m
+% monomial({a,b,c,...}) = ...*L(-c)*L(-b)*L(-a) (a,b,c,...>0)
+% monomials(d) = list of all monomials of degree d
+% dualmonomial({a,b,c,...}) = l(a)*L(b)*L(c)*...
+% dualmonomials(d) = list of all dualmonomials of degree -d
+
+procedure monomial(p); for each m in p product l(-m);
+
+
+monomial
+
+procedure monomials(d); for each p in partitions(d) collect monomial(p);
+
+
+monomials
+
+procedure dualmonomial(p); for each m in reverse(p) product l(m);
+
+
+dualmonomial
+
+procedure dualmonomials(d); for each p in partitions(d) collect dualmonomial(p);
+
+
+dualmonomials
+
+
+% kacmat(d) = p(d)xp(d) matrix determinant of which is equal to Kac determinant of degree d
+procedure kacmat(d); begin
+  scalar basis_r := monomials(d);
+  scalar basis_l := dualmonomials(d);
+  scalar N := partnum(d);
+  scalar j := 0;
+  scalar k := 0;
+  matrix kac_matrix(N, N);
+  for each ll_r in basis_r do <<
+    k := k + 1;
+    for each ll_l in basis_l do <<
+      j := j + 1;
+      kac_matrix(j, k) := vec(h) * ll_l * ll_r * vec(h);
+    >>;
+    j := 0;
+  >>;
+  return kac_matrix;
+end;
+
+
+kacmat
+
+
+% kacdet(d) = Kac determinant of degree d
+procedure kacdet(d); begin
+  kac_matrix := kacmat(d);
+  return det(kac_matrix);
+end;
+
+
+kacdet
+
+
+% kacdet_t(d, tau) = Kac determinant of degree d for c = c(tau)
+procedure kacdet_t(d, tau); sub(c = centralcharge(tau), kacdet(d));
+
+
+kacdet_t
+
+
+% kacdet_t_rhs(d, tau) = formula of kacdet_t(d, tau)
+procedure kacdet_t_rhs(d, tau); begin
+  return for r := 1:d product for s := 1:d product (h - cw(r, s, tau))^partnum(d - r*s);
+end;
+
+
+kacdet_t_rhs
+
+
+% kacdet_fact(d, tau) = factorization of kacdet_t(d, tau)
+procedure kacdet_fact(d, tau); begin
+  scalar kd := kacdet_t(d, tau);
+  return {num = factorize(num(kd)), den = den(kd)};
+end;
+
+
+kacdet_fact
+
+
+% kacdet_sol(d, tau) = solution of kacdet_t(d, tau) w.r.t. h
+procedure kacdet_sol(d, tau); begin
+  scalar kd := kacdet_t(d, tau);
+  return solve(kd, h)
+end;
+
+
+kacdet_sol
+
+
+% lincomb(d) = L(-1)^d + x1 L(-2)*L(-1)^{d-2} + ...
+procedure lincomb(d); begin
+  scalar j := -1;
+  return for each ll in monomials(d) sum <<
+    j := j + 1;
+    if j = 0 then ll else mkid(x, j) * ll
+  >>;
+end;
+
+
+lincomb
+
+
+% ltoz(s, d) = replace l(-m) in s by z_m 
+procedure ltoz(s, d); begin
+  scalar ss := s;
+  for m := 1:d do ss := (ss where l(-m) => mkid(z, m));
+  return ss;
+end;
+
+
+ltoz
+
+
+% allcoeffs(s, d) = all coefficients of s
+procedure allcoeffs(s, d); begin
+  scalar sz := ltoz(s, d);
+  scalar cs := coeff(sz, mkid(z, 1));
+  for i := 2:d do
+    (cs := for each f in cs join for each g in coeff(f, mkid(z, i)) join if g = 0 then {} else {g});
+  return cs;
+end;
+
+
+allcoeffs
+
+
+% solsingvec(r, s, tau) = solution x1, x2, ... of the equation of the singular vector for (r, s)
+procedure solsingvec(r, s, tau); begin
+  scalar d, sing, v1, s1, lineq1, v2, s2, lineq2, lineq, lineq_t, xs, sol;
+  if r = 1 and s = 1 then return {{}};
+  d := r*s;
+  sing := lincomb(d);
+  v1 := l(1)*sing*vec(h);
+  s1 := ltoz(v1*vec(h), d);
+  lineq1 := allcoeffs(s1, d);
+  v2 := l(2)*sing*vec(h);
+  s2 := ltoz(v2*vec(h), d);
+  lineq2 := allcoeffs(s2, d);
+  lineq := append(lineq1, lineq2);
+  lineq_t := sub(c = centralcharge(tau), h = conformalweight(r, s, tau), lineq);
+  xs := for i := 1:(length(partitions(d)) - 1) collect mkid(x, i);
+  sol := solve(lineq_t, xs);
+  return sol;
+end;
+
+
+solsingvec
+
+
+% singvec(r, s, tau) = Virasoro part of the singular vector for (r, s) 
+procedure singvec(r, s, tau); begin
+  scalar sing := lincomb(r*s);
+  scalar sol := solsingvec(r, s, tau);
+  return sub(first(sol), sing)
+end;
+
+
+singvec
+
+
+% proj12(s) = replace l(m) (m<-2) in s by 0 and l(-1), l(-2) by z1, z2 respectively
+procedure proj12(s); begin
+  scalar sp := vecproj() * s;
+  return vecproj() * sp;
+end;
+
+
+proj12
+
+
+% proj12_fact(s) = factorization of proj12(s)
+procedure proj12_fact(s); begin
+  scalar sp := vecproj() * s;
+  sp := vecproj() * sp;
+  return {num = factorize(num(sp)), den = den(sp)};
+end;
+
+
+proj12_fact
+
+
+% act_ff(s, h, gamma) = result of the action of s on w^{-gamma} with conformal weight h
+procedure act_ff(s, h, gamma); begin
+  scalar g := s * vecf(h, gamma);
+  g := g * vecf(h, gamma);
+  return g;
+end;
+
+
+act_ff
+
+
+% g_ff(r, s, h, gamma, tau) = result of the action of singvec(r, s, tau) on w^{-gamma} with h
+procedure g_ff(r, s, h, gamma, tau); begin
+  scalar sing := singvec(r, s, tau);
+  return act_ff(sing, h, gamma);
+end;
+
+
+g_ff
+
+
+% g_ff_factor(k, l, a, b, h, gamma) = the formula of Theorem 3.2 in [FF]
+procedure g_ff_factor(k, l, a, b, h, gamma); begin
+  return (gamma^2 
+    + ((2*a*(k-a)+k)/theta^2 + (2*b*(l-b)+l)*theta^2 + k*l+k+l-(k-2*a)*(l-2*b)) * gamma
+    + ((k-2*a)/theta + (l-2*b)*theta)^2 * h
+    + (a/theta + b*theta) * ((a+1)/theta + (b+1)*theta) *
+      ((k-a)/theta + (l-b)*theta) * ((k-a+1)/theta + (l-b+1)*theta)
+  );
+end;
+
+
+g_ff_factor
+
+
+% g_ff_factor_lhs(r0, s0, r1, s1, h2, i1, j1)
+% = another version of the formula in Theorem 3.2 of [FF]
+procedure g_ff_factor_lhs(r0, s0, r1, s1, h2, i1, j1); begin
+  scalar k := r1 - 1; 
+  scalar l := s1 - 1; 
+  scalar a := i1 - 1; 
+  scalar b := j1 - 1;
+  scalar h := cw(r0, s0, tau);
+  scalar gamma := cw(r0, s0, tau) + cw(r1, s1, tau) - h2;
+  return g_ff_factor(k, l, a, b, h, gamma);
+end;
+
+
+g_ff_factor_lhs
+
+
+% g_ff_factor_rhs(r0, s0, r1, s1, h2, i1, j1)
+% = explicit factorization of g_ff_factor_lhs(r0, s0, r1, s1, h2, i1, j1)
+procedure g_ff_factor_rhs(r0, s0, r1, s1, h2, i1, j1); begin
+  return (
+    (h2 - cw(r0+r1+1-2*i1, s0+s1+1-2*j1, tau)) *
+    (h2 - cw(r0-(r1+1-2*i1), s0-(s1+1-2*j1), tau))
+  );
+end;
+
+
+g_ff_factor_rhs
+
+
+% f_ff(r1, s1, h0, h1, h2, tau)
+% = <h2|Phi(w, singvec_{r1,s1}|h1>)|h0> / w^{h2-h1-h0-r1*s1}
+% where c = c(tau)
+procedure f_ff(r1, s1, h0, h1, h2, tau); g_ff(r1, s1, h0, h0 + h1 - h2, tau);
+
+
+f_ff
+
+
+% f_fusion(r0, s0, r1, s1, h2, tau)
+% = <h2|Phi(w, singvec_{r1,s1}|h1>)|h0> / w^{h2-h1-h0-r1*s1}
+% where c = c(tau), h0 = h_{r0,s0}(tau), h1 = h_{r1,s1}(tau). 
+procedure f_fusion(r0, s0, r1, s1, h2, tau); begin
+  scalar h0 := cw(r0, s0, tau);
+  scalar h1 := cw(r1, s1, tau);
+  return f_ff(r1, s1, h0, h1, h2, tau);
+end;
+
+
+f_fusion
+
+
+% f_fusion_rhs(r0, s0, r1, s1, h2, tau)
+% = the explicit factorization of f_fusion(r0, s0, r1, s1, h2, tau)
+procedure f_fusion_rhs(r0, s0, r1, s1, h2, tau); begin
+  return ((-1)^(r1*s1) *
+    (for i1 := 1:r1 product for j1 := 1:s1 product h2 - cw(r0+r1+1-2*i1, s0+s1+1-2*j1, tau))
+  );
+end;
+
+
+f_fusion_rhs
+
+
+% f_fusion_fact(r0, s0, r1, s1, h2, tau)
+% = factorization of f_ff(r1, s1, h0, h1, h2, tau)
+procedure f_fusion_fact(r0, s0, r1, s1, h2, tau); begin
+  scalar f := f_fusion(r0, s0, r1, s1, h2, tau);
+  return {num = factorize(num(f)), den = den(f)};
+end;
+
+
+f_fusion_fact
+
+
+% f_fusion_fact(r0, s0, r1, s1, h2, tau)
+% = solution of f_ff(r1, s1, h0, h1, h2, tau) = 0 w.r.t. h2
+procedure f_fusion_sol(r0, s0, r1, s1, h2, tau); begin
+  scalar f := f_fusion(r0, s0, r1, s1, h2, tau);
+  return solve(f, h2);
+end;
+
+
+f_fusion_sol
+
+
+% f_minimal_model(p, q) = <h|Phi(w, singvec_{p-1,q-1}|0>)|h> / w^{-r1*s1}
+% where c = c(-p/q)
+procedure f_minimal_model(p, q); f_ff(p-1, q-1, h, 0, h, -p/q);
+
+
+f_minimal_model
+
+
+% f_minimal_model_fact(p, q) = factorization of f_minimal_model(p, q)
+procedure f_minimal_model_fact(p, q); begin
+  scalar f := f_minimal_model(p, q);
+  scalar topcoeff := first(reverse(coeff(f, h)));
+  scalar sol := solve(f, h);
+  return {topcoeff, sol};
+end;
+
+
+f_minimal_model_fact
+
+
+% f_minimal_model_factor_lhs(p, q)
+% = certain specialization of the formula of Theorem 3.2 in [FF].
+procedure f_minimal_model_factor_lhs(p, q, r, s, h); begin
+  return sub(tau=-p/q, g_ff_factor(p-2, q-2, r-1, s-1, h, 0));
+end;
+
+
+f_minimal_model_factor_lhs
+
+
+% f_minimal_model_factor_rhs(p, q)
+% = explicit simplification of f_minimal_model_factor_lhs(p, q)
+procedure f_minimal_model_factor_rhs(p, q, r, w, h); begin
+  return -4*(q*r - p*s)^2/(p*q) * (h - cw(r, s, -p/q));
+end;
+
+
+f_minimal_model_factor_rhs
+
+
+% table_minimal_model(p, q)
+% = table of the conformal weights of the minimal model for c=c(-p/q).
+procedure table_minimal_model(p, q); begin
+  matrix table_mm(p-1, q-1);
+  for r := 1:(p-1) do for s := 1:(q-1) do begin
+    table_mm(r, s) := cw(r, s, -p/q);
+  end;
+  return table_mm;
+end;
+
+
+table_minimal_model
+
+
+;
+
+end;
+
+2: in "D:\OneDrive\work\ConformalFieldTheory\REDUCE\virasoro_algebra_test.red";
+% L(m)'s satidfy the relation of the Virasoro algebta.
+
+operator O;
+
+
+noncom O;
+
+
+commutator(O(m), O(n));
+
+
+o(m)*o(n) - o(n)*o(m)
+
+
+commutator(L(0), L(-2));
+
+
+2*l(-2)
+
+commutator(L(0), L(-1));
+
+
+l(-1)
+
+commutator(L(0), L(0));
+
+
+0
+
+commutator(L(0), L(1));
+
+
+ - l(1)
+
+commutator(L(0), L(2));
+
+
+ - 2*l(2)
+
+commutator(L(1), L(-2));
+
+
+3*l(-1)
+
+commutator(L(1), L(-1));
+
+
+2*l(0)
+
+commutator(L(1), L(0));
+
+
+l(1)
+
+commutator(L(1), L(1));
+
+
+0
+
+commutator(L(1), L(2));
+
+
+ - l(3)
+
+commutator(L(2), L(-2));
+
+
+          1
+4*l(0) + ---*c
+          2
+
+commutator(L(2), L(-1));
+
+
+3*l(1)
+
+commutator(L(2), L(0));
+
+
+2*l(2)
+
+commutator(L(2), L(1));
+
+
+l(3)
+
+commutator(L(2), L(2));
+
+
+0
+
+
+% left action of L(m) on |h>
+
+L(-2)*vec(h);
+
+
+l(-2)*vec(h)
+
+L(-1)*vec(h);
+
+
+l(-1)*vec(h)
+
+L(0)*vec(h);
+
+
+h*vec(h)
+
+L(1)*vec(h);
+
+
+0
+
+L(2)*vec(h);
+
+
+0
+
+
+% right action of L(m) on <h|
+
+vec(h)*L(-2);
+
+
+0
+
+vec(h)*L(-1);
+
+
+0
+
+vec(h)*L(0);
+
+
+h*vec(h)
+
+vec(h)*L(1);
+
+
+vec(h)*l(1)
+
+vec(h)*L(2);
+
+
+vec(h)*l(2)
+
+
+% <h|h> = 1
+
+vec(h)*vec(h);
+
+
+1
+
+
+% central charge c(tau)
+centralcharge(tau);
+
+
+   -1       2
+tau  *(6*tau  + 13*tau + 6)
+
+
+% conformal weight h_{r,s}(tau)
+conformalweight(r, s, tau);
+
+
+   -1      1     2  2    1     2    1             1         1   2    1
+tau  *( - ---*tau *s  + ---*tau  - ---*tau*r*s + ---*tau - ---*r  + ---)
+           4             4          2             2         4        4
+
+cw(r, s, tau);
+
+
+   -1      1     2  2    1     2    1             1         1   2    1
+tau  *( - ---*tau *s  + ---*tau  - ---*tau*r*s + ---*tau - ---*r  + ---)
+           4             4          2             2         4        4
+
+
+% list of the all partition of n
+partitions(5);
+
+
+{{1,1,1,1,1},{1,1,1,2},{1,1,3},{1,2,2},{1,4},{2,3},{5}}
+
+
+% partition number of n
+partnum(5);
+
+
+7
+
+
+% monomials and dual monomials of L(m)
+
+monomial({1,1,2,3,3,3,4});
+
+
+           3            2
+l(-4)*l(-3) *l(-2)*l(-1)
+
+monomials(5);
+
+
+      5
+{l(-1) ,
+
+            3
+ l(-2)*l(-1) ,
+
+            2
+ l(-3)*l(-1) ,
+
+      2
+ l(-2) *l(-1),
+
+ l(-4)*l(-1),
+
+ l(-3)*l(-2),
+
+ l(-5)}
+
+dualmonomial({1,1,2,3,3,3,4});
+
+
+    2          3
+l(1) *l(2)*l(3) *l(4)
+
+dualmonomials(5);
+
+
+     5
+{l(1) ,
+
+     3
+ l(1) *l(2),
+
+     2
+ l(1) *l(3),
+
+          2
+ l(1)*l(2) ,
+
+ l(1)*l(4),
+
+ l(2)*l(3),
+
+ l(5)}
+
+
+% Kac determinant
+
+kacmat(2);
+
+
+[4*h*(2*h + 1)      6*h    ]
+[                          ]
+[                      1   ]
+[     6*h       4*h + ---*c]
+[                      2   ]
+
+
+kacdet(2);
+
+
+         2
+2*h*(16*h  + 2*h*c - 10*h + c)
+
+kacdet_t(2, tau);
+
+
+     -1        2               2                          2
+2*tau  *h*(16*h *tau + 12*h*tau  + 16*h*tau + 12*h + 6*tau  + 13*tau + 6)
+
+kacdet_fact(2, tau);
+
+
+{num={{2,1},{4*h*tau + 2*tau + 3,1},{4*h + 3*tau + 2,1},{h,1}},
+
+ den=tau}
+
+kacdet_sol(2, tau);
+
+
+     - 2*tau - 3
+{h=--------------,
+       4*tau
+
+     - 3*tau - 2
+ h=--------------,
+         4
+
+ h=0}
+
+
+kd_rhs := kacdet_t_rhs(2, tau);
+
+
+kd_rhs := 
+
+   -1     2        3       2            3       3     2    13         3
+tau  *h*(h *tau + ---*h*tau  + h*tau + ---*h + ---*tau  + ----*tau + ---)
+                   4                    4       8          16         8
+
+kacdet_t(2, tau) / kd_rhs;
+
+
+32
+
+{num = factorize(num(kd_rhs)), den = den(kd_rhs)};
+
+
+{num={{4*h*tau + 2*tau + 3,1},{4*h + 3*tau + 2,1},{h,1}},
+
+ den=16*tau}
+
+solve(kd_rhs, h);
+
+
+      -1      1         3         3         1
+{h=tau  *( - ---*tau - ---),h= - ---*tau - ---,h=0}
+              2         4         4         2
+
+
+kacmat(3);
+
+
+[         2                                         ]
+[24*h*(2*h  + 3*h + 1)  12*h*(3*h + 1)      24*h    ]
+[                                                   ]
+[   12*h*(3*h + 1)      h*(8*h + c + 8)     10*h    ]
+[                                                   ]
+[        24*h                10*h        2*(3*h + c)]
+
+
+kacdet(3);
+
+
+    2      4       3          3      2  2      2          2        2
+48*h *(48*h  + 22*h *c - 142*h  + 2*h *c  - 5*h *c + 102*h  + 3*h*c  - 13*h*c
+
+                  2
+        - 20*h + c  + 2*c)
+
+kacdet_t(3, tau);
+
+
+       -2  2      4    2       3    3       3    2       3           2    4
+144*tau  *h *(16*h *tau  + 44*h *tau  + 48*h *tau  + 44*h *tau + 24*h *tau
+
+                     2    3        2    2       2           2           4
+               + 94*h *tau  + 173*h *tau  + 94*h *tau + 24*h  + 36*h*tau
+
+                          3            2                            4         3
+               + 130*h*tau  + 178*h*tau  + 130*h*tau + 36*h + 12*tau  + 56*tau
+
+                       2
+               + 89*tau  + 56*tau + 12)
+
+kacdet_fact(3, tau);
+
+
+{num={{144,1},
+
+      {4*h*tau + 2*tau + 3,1},
+
+      {h*tau + tau + 2,1},
+
+      {4*h + 3*tau + 2,1},
+
+      {h + 2*tau + 1,1},
+
+      {h,2}},
+
+        2
+ den=tau }
+
+kacdet_sol(3, tau);
+
+
+{h=0,
+
+     - tau - 2
+ h=------------,
+       tau
+
+ h= - 2*tau - 1,
+
+     - 2*tau - 3
+ h=--------------,
+       4*tau
+
+     - 3*tau - 2
+ h=--------------}
+         4
+
+
+kd_rhs := kacdet_t_rhs(3, tau);
+
+
+             -2  2   4    2    11   3    3      3    2    11   3
+kd_rhs := tau  *h *(h *tau  + ----*h *tau  + 3*h *tau  + ----*h *tau
+                               4                          4
+
+                 3   2    4    47   2    3    173   2    2    47   2
+              + ---*h *tau  + ----*h *tau  + -----*h *tau  + ----*h *tau
+                 2             8              16              8
+
+                 3   2    9       4    65       3    89       2    65
+              + ---*h  + ---*h*tau  + ----*h*tau  + ----*h*tau  + ----*h*tau
+                 2        4            8             8             8
+
+                 9       3     4    7     3    89     2    7         3
+              + ---*h + ---*tau  + ---*tau  + ----*tau  + ---*tau + ---)
+                 4       4          2          16          2         4
+
+kacdet_t(3, tau) / kd_rhs;
+
+
+2304
+
+{num = factorize(num(kd_rhs)), den = den(kd_rhs)};
+
+
+{num={{4*h*tau + 2*tau + 3,1},
+
+      {h*tau + tau + 2,1},
+
+      {4*h + 3*tau + 2,1},
+
+      {h + 2*tau + 1,1},
+
+      {h,2}},
+
+           2
+ den=16*tau }
+
+solve(kd_rhs, h);
+
+
+{h=0,
+
+      -1
+ h=tau  *( - tau - 2),
+
+ h= - 2*tau - 1,
+
+      -1      1         3
+ h=tau  *( - ---*tau - ---),
+              2         4
+
+       3         1
+ h= - ---*tau - ---}
+       4         2
+
+
+kacmat(4);
+
+
+              3       2                      2
+mat((96*h*(4*h  + 12*h  + 11*h + 3),48*h*(6*h  + 7*h + 2),48*h*(4*h + 1),
+
+     72*h*(3*h + 2),120*h),
+
+              2                     2
+    (48*h*(6*h  + 7*h + 2),2*h*(16*h  + 2*h*c + 58*h + c + 16),20*h*(2*h + 1),
+
+     6*h*(8*h + c + 8),36*h),
+
+    (48*h*(4*h + 1),20*h*(2*h + 1),4*h*(3*h + c + 3),30*h,14*h),
+
+                                               2                   1   2
+    (72*h*(3*h + 2),6*h*(8*h + c + 8),30*h,32*h  + 8*h*c + 32*h + ---*c  + 4*c,
+                                                                   2
+
+     3*(8*h + c)),
+
+    (120*h,36*h,14*h,3*(8*h + c),8*h + 5*c))
+
+
+kacdet(4);
+
+
+     3         9           8             8          7  2           7
+384*h *(98304*h  + 131072*h *c - 868352*h  + 60416*h *c  - 612352*h *c
+
+                    7          6  3           6  2           6              6
+         + 2708480*h  + 12288*h *c  - 100864*h *c  + 876288*h *c - 3951872*h
+
+                 5  4         5  3         5  2           5              5
+         + 1144*h *c  + 5664*h *c  + 1584*h *c  - 446880*h *c + 2969432*h
+
+               4  5         4  4          4  3          4  2          4
+         + 40*h *c  + 2420*h *c  - 10620*h *c  + 71052*h *c  - 41500*h *c
+
+                    4        3  5         3  4         3  3          3  2
+         - 1153232*h  + 140*h *c  + 1058*h *c  + 1140*h *c  - 37630*h *c
+
+                   3             3        2  5        2  4         2  3
+         + 107116*h *c + 210440*h  + 170*h *c  - 221*h *c  + 2175*h *c
+
+                 2  2          2            2         5         4           3
+         + 3340*h *c  - 28984*h *c - 13200*h  + 85*h*c  + 18*h*c  - 1233*h*c
+
+                  2                  5       4       3        2
+         + 434*h*c  + 2640*h*c + 15*c  + 81*c  + 36*c  - 132*c )
+
+kacdet_t(4, tau);
+
+
+        -5  3         9    5           8    6           8    5           8    4
+2304*tau  *h *(16384*h *tau  + 131072*h *tau  + 139264*h *tau  + 131072*h *tau
+
+                          7    7           7    6            7    5
+                + 362496*h *tau  + 958464*h *tau  + 1551360*h *tau
+
+                          7    4           7    3           6    8
+                + 958464*h *tau  + 362496*h *tau  + 442368*h *tau
+
+                           6    7            6    6            6    5
+                + 2270208*h *tau  + 5810944*h *tau  + 7438848*h *tau
+
+                           6    4            6    3           6    2
+                + 5810944*h *tau  + 2270208*h *tau  + 442368*h *tau
+
+                          5    9            5    8            5    7
+                + 247104*h *tau  + 2345472*h *tau  + 9283392*h *tau
+
+                            5    6             5    5             5    4
+                + 19555840*h *tau  + 25163456*h *tau  + 19555840*h *tau
+
+                           5    3            5    2           5
+                + 9283392*h *tau  + 2345472*h *tau  + 247104*h *tau
+
+                         4    10            4    9            4    8
+                + 51840*h *tau   + 1084320*h *tau  + 6840720*h *tau
+
+                            4    7             4    6             4    5
+                + 22274592*h *tau  + 43663632*h *tau  + 54205920*h *tau
+
+                            4    4             4    3            4    2
+                + 43663632*h *tau  + 22274592*h *tau  + 6840720*h *tau
+
+                           4              4           3    10            3    9
+                + 1084320*h *tau + 51840*h  + 181440*h *tau   + 2194128*h *tau
+
+                            3    8             3    7             3    6
+                + 11446416*h *tau  + 33709164*h *tau  + 62429168*h *tau
+
+                            3    5             3    4             3    3
+                + 76354508*h *tau  + 62429168*h *tau  + 33709164*h *tau
+
+                            3    2            3               3
+                + 11446416*h *tau  + 2194128*h *tau + 181440*h
+
+                          2    10            2    9             2    8
+                + 220320*h *tau   + 2339064*h *tau  + 11108988*h *tau
+
+                            2    7             2    6             2    5
+                + 30950082*h *tau  + 55720647*h *tau  + 67515498*h *tau
+
+                            2    4             2    3             2    2
+                + 55720647*h *tau  + 30950082*h *tau  + 11108988*h *tau
+
+                           2               2               10                9
+                + 2339064*h *tau + 220320*h  + 110160*h*tau   + 1197288*h*tau
+
+                               8                 7                 6
+                + 5711508*h*tau  + 15817446*h*tau  + 28269126*h*tau
+
+                                5                 4                 3
+                + 34152444*h*tau  + 28269126*h*tau  + 15817446*h*tau
+
+                               2                                       10
+                + 5711508*h*tau  + 1197288*h*tau + 110160*h + 19440*tau
+
+                            9              8              7              6
+                + 228096*tau  + 1162728*tau  + 3390120*tau  + 6259707*tau
+
+                             5              4              3              2
+                + 7647318*tau  + 6259707*tau  + 3390120*tau  + 1162728*tau
+
+                + 228096*tau + 19440)
+
+kacdet_fact(4, tau);
+
+
+{num={{2304,1},
+
+                      2
+      {4*h*tau + 3*tau  + 6*tau + 3,1},
+
+      {4*h*tau + 6*tau + 15,1},
+
+      {h*tau + tau + 2,1},
+
+      {4*h + 15*tau + 6,1},
+
+      {h + 2*tau + 1,1},
+
+      {4*h*tau + 2*tau + 3,2},
+
+      {4*h + 3*tau + 2,2},
+
+      {h,3}},
+
+        5
+ den=tau }
+
+kacdet_sol(4, tau);
+
+
+{h=0,
+
+     - 2*tau - 3
+ h=--------------,
+       4*tau
+
+     - 3*tau - 2
+ h=--------------,
+         4
+
+            2
+     - 3*tau  - 6*tau - 3
+ h=-----------------------,
+            4*tau
+
+     - tau - 2
+ h=------------,
+       tau
+
+ h= - 2*tau - 1,
+
+     - 6*tau - 15
+ h=---------------,
+        4*tau
+
+     - 15*tau - 6
+ h=---------------}
+          4
+
+
+kd_rhs := kacdet_t_rhs(4, tau);
+
+
+             -5  3   9    5      8    6    17   8    5      8    4
+kd_rhs := tau  *h *(h *tau  + 8*h *tau  + ----*h *tau  + 8*h *tau
+                                           2
+
+                 177   7    7    117   7    6    1515   7    5    117   7    4
+              + -----*h *tau  + -----*h *tau  + ------*h *tau  + -----*h *tau
+                  8               2               16               2
+
+                 177   7    3       6    8    2217   6    7    22699   6    6
+              + -----*h *tau  + 27*h *tau  + ------*h *tau  + -------*h *tau
+                  8                            16               64
+
+                 14529   6    5    22699   6    4    2217   6    3       6    2
+              + -------*h *tau  + -------*h *tau  + ------*h *tau  + 27*h *tau
+                  32                64                16
+
+                 3861   5    9    4581   5    8    145053   5    7
+              + ------*h *tau  + ------*h *tau  + --------*h *tau
+                 256               32               256
+
+                 38195   5    6    393179   5    5    38195   5    4
+              + -------*h *tau  + --------*h *tau  + -------*h *tau
+                  32                256                32
+
+                 145053   5    3    4581   5    2    3861   5
+              + --------*h *tau  + ------*h *tau  + ------*h *tau
+                  256                32              256
+
+                 405   4    10    33885   4    9    427545   4    8
+              + -----*h *tau   + -------*h *tau  + --------*h *tau
+                 128               512               1024
+
+                 696081   4    7    2728977   4    6    1693935   4    5
+              + --------*h *tau  + ---------*h *tau  + ---------*h *tau
+                  512                1024                 512
+
+                 2728977   4    4    696081   4    3    427545   4    2
+              + ---------*h *tau  + --------*h *tau  + --------*h *tau
+                  1024                512                1024
+
+                 33885   4        405   4    2835   3    10    137133   3    9
+              + -------*h *tau + -----*h  + ------*h *tau   + --------*h *tau
+                  512             128        256                1024
+
+                 715401   3    8    8427291   3    7    3901823   3    6
+              + --------*h *tau  + ---------*h *tau  + ---------*h *tau
+                  1024               4096                1024
+
+                 19088627   3    5    3901823   3    4    8427291   3    3
+              + ----------*h *tau  + ---------*h *tau  + ---------*h *tau
+                   4096                1024                4096
+
+                 715401   3    2    137133   3        2835   3    6885   2    10
+              + --------*h *tau  + --------*h *tau + ------*h  + ------*h *tau
+                  1024               1024             256         512
+
+                 292383   2    9    2777247   2    8    15475041   2    7
+              + --------*h *tau  + ---------*h *tau  + ----------*h *tau
+                  2048               4096                 8192
+
+                 55720647   2    6    33757749   2    5    55720647   2    4
+              + ----------*h *tau  + ----------*h *tau  + ----------*h *tau
+                  16384                 8192                16384
+
+                 15475041   2    3    2777247   2    2    292383   2
+              + ----------*h *tau  + ---------*h *tau  + --------*h *tau
+                   8192                4096                2048
+
+                 6885   2    6885       10    149661       9    1427877       8
+              + ------*h  + ------*h*tau   + --------*h*tau  + ---------*h*tau
+                 512         1024              2048              4096
+
+                 7908723       7    14134563       6    8538111       5
+              + ---------*h*tau  + ----------*h*tau  + ---------*h*tau
+                  8192                8192               4096
+
+                 14134563       4    7908723       3    1427877       2
+              + ----------*h*tau  + ---------*h*tau  + ---------*h*tau
+                   8192               8192               4096
+
+                 149661           6885       1215     10    891     9
+              + --------*h*tau + ------*h + ------*tau   + -----*tau
+                  2048            1024       1024           64
+
+                 145341     8    423765     7    6259707     6    3823659     5
+              + --------*tau  + --------*tau  + ---------*tau  + ---------*tau
+                  2048            2048            16384            8192
+
+                 6259707     4    423765     3    145341     2    891
+              + ---------*tau  + --------*tau  + --------*tau  + -----*tau
+                  16384            2048            2048           64
+
+                 1215
+              + ------)
+                 1024
+
+kacdet_t(4, tau) / kd_rhs;
+
+
+37748736
+
+{num = factorize(num(kd_rhs)), den = den(kd_rhs)};
+
+
+                      2
+{num={{4*h*tau + 3*tau  + 6*tau + 3,1},
+
+      {4*h*tau + 6*tau + 15,1},
+
+      {h*tau + tau + 2,1},
+
+      {4*h + 15*tau + 6,1},
+
+      {h + 2*tau + 1,1},
+
+      {4*h*tau + 2*tau + 3,2},
+
+      {4*h + 3*tau + 2,2},
+
+      {h,3}},
+
+              5
+ den=16384*tau }
+
+solve(kd_rhs, h);
+
+
+{h=0,
+
+      -1      1         3
+ h=tau  *( - ---*tau - ---),
+              2         4
+
+       3         1
+ h= - ---*tau - ---,
+       4         2
+
+      -1      3     2    3         3
+ h=tau  *( - ---*tau  - ---*tau - ---),
+              4          2         4
+
+      -1
+ h=tau  *( - tau - 2),
+
+ h= - 2*tau - 1,
+
+      -1      3         15
+ h=tau  *( - ---*tau - ----),
+              2         4
+
+       15         3
+ h= - ----*tau - ---}
+       4          2
+
+
+% singular vectors
+
+singvec(1, 2, tau);
+
+
+     2
+l(-1)  + tau*l(-2)
+
+singvec(2, 1, tau);
+
+
+     2      -1
+l(-1)  + tau  *l(-2)
+
+singvec(1, 3, tau);
+
+
+     3
+l(-1)  + 4*tau*(l(-2)*l(-1)) + 2*l(-3)*tau*(2*tau + 1)
+
+singvec(3, 1, tau);
+
+
+     3        -1                      -2
+l(-1)  + 4*tau  *(l(-2)*l(-1)) + 2*tau  *l(-3)*(tau + 2)
+
+singvec(1, 4, tau);
+
+
+     4        2      2                      2
+l(-1)  + 9*tau *l(-2)  + 10*tau*(l(-2)*l(-1) ) + 2*l(-3)*l(-1)*tau*(12*tau + 5)
+
+                     2
+ + 6*l(-4)*tau*(6*tau  + 4*tau + 1)
+
+singvec(4, 1, tau);
+
+
+     4        -2      2         -1             2
+l(-1)  + 9*tau  *l(-2)  + 10*tau  *(l(-2)*l(-1) )
+
+        -2                                 -3           2
+ + 2*tau  *l(-3)*l(-1)*(5*tau + 12) + 6*tau  *l(-4)*(tau  + 4*tau + 6)
+
+singvec(2, 2, tau);
+
+
+     4      -2      2     4        2             -1            2     2
+l(-1)  + tau  *l(-2) *(tau  - 2*tau  + 1) + 2*tau  *l(-2)*l(-1) *(tau  + 1)
+
+        -1                 2                     -1           2
+ + 2*tau  *l(-3)*l(-1)*(tau  + 3*tau + 1) + 3*tau  *l(-4)*(tau  + 2*tau + 1)
+
+singvec(1, 5, tau);
+
+
+     5         2       2                             3
+l(-1)  + 64*tau *(l(-2) *l(-1)) + 20*tau*(l(-2)*l(-1) )
+
+                2                                      2
+ + 6*l(-3)*l(-1) *tau*(14*tau + 5) + 64*l(-3)*l(-2)*tau *(3*tau + 1)
+
+                             2
+ + 12*l(-4)*l(-1)*tau*(24*tau  + 14*tau + 3)
+
+                      3         2
+ + 8*l(-5)*tau*(72*tau  + 66*tau  + 23*tau + 3)
+
+singvec(5, 1, tau);
+
+
+     5         -2       2                -1             3
+l(-1)  + 64*tau  *(l(-2) *l(-1)) + 20*tau  *(l(-2)*l(-1) )
+
+        -2            2                      -3
+ + 6*tau  *l(-3)*l(-1) *(5*tau + 14) + 64*tau  *l(-3)*l(-2)*(tau + 3)
+
+         -3                   2
+ + 12*tau  *l(-4)*l(-1)*(3*tau  + 14*tau + 24)
+
+        -4             3         2
+ + 8*tau  *l(-5)*(3*tau  + 23*tau  + 66*tau + 72)
+
+singvec(1, 6, tau);
+
+
+     6          3      3          2       2      2                       4
+l(-1)  + 225*tau *l(-2)  + 259*tau *(l(-2) *l(-1) ) + 35*tau*(l(-2)*l(-1) )
+
+           2    2         2                                3
+ + 10*l(-3) *tau *(160*tau  + 88*tau + 13) + 14*l(-3)*l(-1) *tau*(16*tau + 5)
+
+                          2
+ + 2*l(-3)*l(-2)*l(-1)*tau *(880*tau + 259)
+
+                2             2
+ + 6*l(-4)*l(-1) *tau*(216*tau  + 112*tau + 21)
+
+                     2         2
+ + 10*l(-4)*l(-2)*tau *(360*tau  + 176*tau + 31)
+
+                              3           2
+ + 4*l(-5)*l(-1)*tau*(1440*tau  + 1192*tau  + 369*tau + 42)
+
+                        4          3          2
+ + 40*l(-6)*tau*(360*tau  + 378*tau  + 160*tau  + 35*tau + 3)
+
+singvec(6, 1, tau);
+
+
+     6          -3      3          -2       2      2          -1             4
+l(-1)  + 225*tau  *l(-2)  + 259*tau  *(l(-2) *l(-1) ) + 35*tau  *(l(-2)*l(-1) )
+
+         -4      2        2                         -2            3
+ + 10*tau  *l(-3) *(13*tau  + 88*tau + 160) + 14*tau  *l(-3)*l(-1) *(5*tau + 16)
+
+        -3
+ + 2*tau  *l(-3)*l(-2)*l(-1)*(259*tau + 880)
+
+        -3            2        2
+ + 6*tau  *l(-4)*l(-1) *(21*tau  + 112*tau + 216)
+
+         -4                    2
+ + 10*tau  *l(-4)*l(-2)*(31*tau  + 176*tau + 360)
+
+        -4                    3          2
+ + 4*tau  *l(-5)*l(-1)*(42*tau  + 369*tau  + 1192*tau + 1440)
+
+         -5             4         3          2
+ + 40*tau  *l(-6)*(3*tau  + 35*tau  + 160*tau  + 378*tau + 360)
+
+singvec(2, 3, tau);
+
+
+     6      -3      3        4        2           -2      2      2        4
+l(-1)  + tau  *l(-2) *(16*tau  - 8*tau  + 1) + tau  *l(-2) *l(-1) *(16*tau  + 3)
+
+      -1            4       2
+ + tau  *l(-2)*l(-1) *(8*tau  + 3)
+
+        -2      2       6        5         4        3         2
+ + 2*tau  *l(-3) *(8*tau  + 8*tau  - 18*tau  - 6*tau  + 10*tau  + 6*tau + 1)
+
+        -1            3       3        2
+ + 2*tau  *l(-3)*l(-1) *(4*tau  + 8*tau  + 12*tau + 3)
+
+        -2                          5         4         3
+ + 2*tau  *l(-3)*l(-2)*l(-1)*(16*tau  + 16*tau  - 12*tau  + 12*tau + 3)
+
+        -1            2       3         2
+ + 6*tau  *l(-4)*l(-1) *(4*tau  + 18*tau  + 12*tau + 3)
+
+        -2                    5         4         3         2
+ + 2*tau  *l(-4)*l(-2)*(16*tau  + 40*tau  - 12*tau  - 10*tau  + 12*tau + 5)
+
+        -2                   5         4         3         2
+ + 4*tau  *l(-5)*l(-1)*(4*tau  + 34*tau  + 66*tau  + 46*tau  + 12*tau + 1)
+
+        -2              5         4         3         2
+ + 4*tau  *l(-6)*(20*tau  + 68*tau  + 79*tau  + 51*tau  + 19*tau + 3)
+
+singvec(3, 2, tau);
+
+
+     6      -1      3     4        2            -2      2      2       4
+l(-1)  + tau  *l(-2) *(tau  - 8*tau  + 16) + tau  *l(-2) *l(-1) *(3*tau  + 16)
+
+      -1            4       2
+ + tau  *l(-2)*l(-1) *(3*tau  + 8)
+
+        -4      2     6        5         4        3         2
+ + 2*tau  *l(-3) *(tau  + 6*tau  + 10*tau  - 6*tau  - 18*tau  + 8*tau + 8)
+
+        -2            3       3         2
+ + 2*tau  *l(-3)*l(-1) *(3*tau  + 12*tau  + 8*tau + 4)
+
+        -3                         5         4         2
+ + 2*tau  *l(-3)*l(-2)*l(-1)*(3*tau  + 12*tau  - 12*tau  + 16*tau + 16)
+
+        -2            2       3         2
+ + 6*tau  *l(-4)*l(-1) *(3*tau  + 12*tau  + 18*tau + 4)
+
+        -3                   5         4         3         2
+ + 2*tau  *l(-4)*l(-2)*(5*tau  + 12*tau  - 10*tau  - 12*tau  + 40*tau + 16)
+
+        -3                 5         4         3         2
+ + 4*tau  *l(-5)*l(-1)*(tau  + 12*tau  + 46*tau  + 66*tau  + 34*tau + 4)
+
+        -3             5         4         3         2
+ + 4*tau  *l(-6)*(3*tau  + 19*tau  + 51*tau  + 79*tau  + 68*tau + 20)
+
+
+lincomb(4);
+
+
+     4           2                 2
+l(-1)  + x3*l(-2)  + x1*l(-2)*l(-1)  + x2*l(-3)*l(-1) + x4*l(-4)
+
+ltoz(lincomb(4), 4);
+
+
+     2                      2             4
+x1*z1 *z2 + x2*z1*z3 + x3*z2  + x4*z4 + z1
+
+allcoeffs(lincomb(4), 4);
+
+
+{x4,x3,x2,x1,1}
+
+solsingvec(2, 2, tau);
+
+
+           2
+      2*tau  + 2
+{{x1=------------,
+         tau
+
+           2
+      2*tau  + 6*tau + 2
+  x2=--------------------,
+             tau
+
+         4        2
+      tau  - 2*tau  + 1
+  x3=-------------------,
+               2
+            tau
+
+           2
+      3*tau  + 6*tau + 3
+  x4=--------------------}}
+             tau
+
+singvec(2, 2, tau);
+
+
+     4      -2      2     4        2             -1            2     2
+l(-1)  + tau  *l(-2) *(tau  - 2*tau  + 1) + 2*tau  *l(-2)*l(-1) *(tau  + 1)
+
+        -1                 2                     -1           2
+ + 2*tau  *l(-3)*l(-1)*(tau  + 3*tau + 1) + 3*tau  *l(-4)*(tau  + 2*tau + 1)
+
+
+% projection of singvec_{r,s}(tau) by L(-1)->z1, L(-2)->z2, L(-3),L(-4)...->0
+
+proj12(singvec(2, 2, tau));
+
+
+   -2     4   2        3   2         2   4        2   2           2        2
+tau  *(tau *z2  + 2*tau *z1 *z2 + tau *z1  - 2*tau *z2  + 2*tau*z1 *z2 + z2 )
+
+proj12_fact(singvec(2, 2, tau));
+
+
+          2            2
+{num={{tau *z2 + tau*z1  + 2*tau*z2 + z2,1},
+
+          2            2
+      {tau *z2 + tau*z1  - 2*tau*z2 + z2,1}},
+
+        2
+ den=tau }
+
+
+proj12_fact(singvec(1, 1, tau));
+
+
+{num={{z1,1}},den=1}
+
+proj12_fact(singvec(1, 2, tau));
+
+
+                  2
+{num={{tau*z2 + z1 ,1}},den=1}
+
+proj12_fact(singvec(1, 3, tau));
+
+
+                    2
+{num={{4*tau*z2 + z1 ,1},{z1,1}},den=1}
+
+proj12_fact(singvec(1, 4, tau));
+
+
+                    2                2
+{num={{9*tau*z2 + z1 ,1},{tau*z2 + z1 ,1}},den=1}
+
+proj12_fact(singvec(1, 5, tau));
+
+
+                     2                  2
+{num={{16*tau*z2 + z1 ,1},{4*tau*z2 + z1 ,1},{z1,1}},
+
+ den=1}
+
+proj12_fact(singvec(1, 6, tau));
+
+
+                     2
+{num={{25*tau*z2 + z1 ,1},
+
+                    2
+      {9*tau*z2 + z1 ,1},
+
+                  2
+      {tau*z2 + z1 ,1}},
+
+ den=1}
+
+proj12_fact(singvec(1, 7, tau));
+
+
+                     2
+{num={{36*tau*z2 + z1 ,1},
+
+                     2
+      {16*tau*z2 + z1 ,1},
+
+                    2
+      {4*tau*z2 + z1 ,1},
+
+      {z1,1}},
+
+ den=1}
+
+
+% action of L(m) on w^{h2-h1-h0}
+
+act_ff(l(-3), h0, h0+h1-h2);
+
+
+3*h0 + h1 - h2
+
+factorize(act_ff(l(-2)*l(-1), h0, h0+h1-h2));
+
+
+{{2*h0 + h1 - h2 + 1,1},{h0 + h1 - h2,1}}
+
+factorize(act_ff(l(-1)^3, h0, h0+h1-h2));
+
+
+{{h0 + h1 - h2 + 2,1},
+
+ {h0 + h1 - h2 + 1,1},
+
+ {h0 + h1 - h2,1}}
+
+
+% action of singvec_{r,s} on w^{h2-h1-h0}
+
+g_ff(2, 2, cw(1, 1, tau), cw(1, 1, tau) + cw(2, 2, tau) + h2, tau);
+
+
+   -4    9      8    3      7       3      7    1     6   2    1     6
+tau  *(-----*tau  + ----*tau *h2 + ----*tau  - ---*tau *h2  + ---*tau *h2
+        256          16             16          8              2
+
+           15     6      5   3      5   2    3      5       3      5      4   4
+        + ----*tau  - tau *h2  - tau *h2  - ----*tau *h2 - ----*tau  + tau *h2
+           64                                16             16
+
+           3     4   2      4       69      4      3   3      3   2
+        - ---*tau *h2  - tau *h2 - -----*tau  - tau *h2  - tau *h2
+           4                        128
+
+           3      3       3      3    1     2   2    1     2       15     2
+        - ----*tau *h2 - ----*tau  - ---*tau *h2  + ---*tau *h2 + ----*tau
+           16             16          8              2             64
+
+           3             3           9
+        + ----*tau*h2 + ----*tau + -----)
+           16            16         256
+
+
+% Verify the factorization of g_ff_factor_lhs
+
+solve(g_ff_factor_lhs(r0, s0, r1, s1, h2, i1, j1), h2);
+
+
+       -1        2   2      2            2            2       1     2   2
+{h2=tau  *( - tau *j1  + tau *j1*s0 + tau *j1*s1 + tau *j1 - ---*tau *s0
+                                                              4
+
+               1     2          1     2       1     2   2    1     2
+            - ---*tau *s0*s1 - ---*tau *s0 - ---*tau *s1  - ---*tau *s1
+               2                2             4              2
+
+            - 2*tau*i1*j1 + tau*i1*s0 + tau*i1*s1 + tau*i1 + tau*j1*r0
+
+                                    1               1               1
+            + tau*j1*r1 + tau*j1 - ---*tau*r0*s0 - ---*tau*r0*s1 - ---*tau*r0
+                                    2               2               2
+
+               1               1               1            1
+            - ---*tau*r1*s0 - ---*tau*r1*s1 - ---*tau*r1 - ---*tau*s0
+               2               2               2            2
+
+               1             2                         1    2    1
+            - ---*tau*s1 - i1  + i1*r0 + i1*r1 + i1 - ---*r0  - ---*r0*r1
+               2                                       4         2
+
+               1        1    2    1
+            - ---*r0 - ---*r1  - ---*r1),
+               2        4         2
+
+       -1        2   2      2            2            2       1     2   2
+ h2=tau  *( - tau *j1  - tau *j1*s0 + tau *j1*s1 + tau *j1 - ---*tau *s0
+                                                              4
+
+               1     2          1     2       1     2   2    1     2
+            + ---*tau *s0*s1 + ---*tau *s0 - ---*tau *s1  - ---*tau *s1
+               2                2             4              2
+
+            - 2*tau*i1*j1 - tau*i1*s0 + tau*i1*s1 + tau*i1 - tau*j1*r0
+
+                                    1               1               1
+            + tau*j1*r1 + tau*j1 - ---*tau*r0*s0 + ---*tau*r0*s1 + ---*tau*r0
+                                    2               2               2
+
+               1               1               1            1
+            + ---*tau*r1*s0 - ---*tau*r1*s1 - ---*tau*r1 + ---*tau*s0
+               2               2               2            2
+
+               1             2                         1    2    1
+            - ---*tau*s1 - i1  - i1*r0 + i1*r1 + i1 - ---*r0  + ---*r0*r1
+               2                                       4         2
+
+               1        1    2    1
+            + ---*r0 - ---*r1  - ---*r1)}
+               2        4         2
+
+solve(g_ff_factor_rhs(r0, s0, r1, s1, h2, i1, j1), h2);
+
+
+       -1        2   2      2            2            2       1     2   2
+{h2=tau  *( - tau *j1  + tau *j1*s0 + tau *j1*s1 + tau *j1 - ---*tau *s0
+                                                              4
+
+               1     2          1     2       1     2   2    1     2
+            - ---*tau *s0*s1 - ---*tau *s0 - ---*tau *s1  - ---*tau *s1
+               2                2             4              2
+
+            - 2*tau*i1*j1 + tau*i1*s0 + tau*i1*s1 + tau*i1 + tau*j1*r0
+
+                                    1               1               1
+            + tau*j1*r1 + tau*j1 - ---*tau*r0*s0 - ---*tau*r0*s1 - ---*tau*r0
+                                    2               2               2
+
+               1               1               1            1
+            - ---*tau*r1*s0 - ---*tau*r1*s1 - ---*tau*r1 - ---*tau*s0
+               2               2               2            2
+
+               1             2                         1    2    1
+            - ---*tau*s1 - i1  + i1*r0 + i1*r1 + i1 - ---*r0  - ---*r0*r1
+               2                                       4         2
+
+               1        1    2    1
+            - ---*r0 - ---*r1  - ---*r1),
+               2        4         2
+
+       -1        2   2      2            2            2       1     2   2
+ h2=tau  *( - tau *j1  - tau *j1*s0 + tau *j1*s1 + tau *j1 - ---*tau *s0
+                                                              4
+
+               1     2          1     2       1     2   2    1     2
+            + ---*tau *s0*s1 + ---*tau *s0 - ---*tau *s1  - ---*tau *s1
+               2                2             4              2
+
+            - 2*tau*i1*j1 - tau*i1*s0 + tau*i1*s1 + tau*i1 - tau*j1*r0
+
+                                    1               1               1
+            + tau*j1*r1 + tau*j1 - ---*tau*r0*s0 + ---*tau*r0*s1 + ---*tau*r0
+                                    2               2               2
+
+               1               1               1            1
+            + ---*tau*r1*s0 - ---*tau*r1*s1 - ---*tau*r1 + ---*tau*s0
+               2               2               2            2
+
+               1             2                         1    2    1
+            - ---*tau*s1 - i1  - i1*r0 + i1*r1 + i1 - ---*r0  + ---*r0*r1
+               2                                       4         2
+
+               1        1    2    1
+            + ---*r0 - ---*r1  - ---*r1)}
+               2        4         2
+
+g_ff_factor_lhs(r0, s0, r1, s1, h2, i1, j1) / g_ff_factor_rhs(r0, s0, r1, s1, h2, i1, j1);
+
+
+1
+
+
+% <h2|Phi(w, singvec_{r1,s1}|h1>)|h0> / w^{h2-h1-h0-r1*s1}
+
+f_fusion(1, 1, 2, 2, h2, tau);
+
+
+   -4    9      8    3      7       3      7    1     6   2    1     6
+tau  *(-----*tau  - ----*tau *h2 + ----*tau  - ---*tau *h2  - ---*tau *h2
+        256          16             16          8              2
+
+           15     6      5   3      5   2    3      5       3      5      4   4
+        + ----*tau  + tau *h2  - tau *h2  + ----*tau *h2 - ----*tau  + tau *h2
+           64                                16             16
+
+           3     4   2      4       69      4      3   3      3   2
+        - ---*tau *h2  + tau *h2 - -----*tau  + tau *h2  - tau *h2
+           4                        128
+
+           3      3       3      3    1     2   2    1     2       15     2
+        + ----*tau *h2 - ----*tau  - ---*tau *h2  - ---*tau *h2 + ----*tau
+           16             16          8              2             64
+
+           3             3           9
+        - ----*tau*h2 + ----*tau + -----)
+           16            16         256
+
+f_fusion_fact(1, 1, 2, 2, h2, tau);
+
+
+                       2
+{num={{4*h2*tau + 3*tau  + 6*tau + 3,1},
+
+                       2
+      {4*h2*tau + 3*tau  - 2*tau - 1,1},
+
+                     2
+      {4*h2*tau - tau  - 2*tau + 3,1},
+
+                     2
+      {4*h2*tau - tau  - 2*tau - 1,1}},
+
+            4
+ den=256*tau }
+
+f_fusion_sol(1, 1, 2, 2, h2, tau);
+
+
+        2
+     tau  + 2*tau + 1
+{h2=------------------,
+          4*tau
+
+        2
+     tau  + 2*tau - 3
+ h2=------------------,
+          4*tau
+
+             2
+      - 3*tau  + 2*tau + 1
+ h2=-----------------------,
+             4*tau
+
+             2
+      - 3*tau  - 6*tau - 3
+ h2=-----------------------}
+             4*tau
+
+
+f_rhs := f_fusion_rhs(1, 1, 2, 2, h2, tau);
+
+
+            -4    9      8    3      7       3      7    1     6   2
+f_rhs := tau  *(-----*tau  - ----*tau *h2 + ----*tau  - ---*tau *h2
+                 256          16             16          8
+
+                    1     6       15     6      5   3      5   2    3      5
+                 - ---*tau *h2 + ----*tau  + tau *h2  - tau *h2  + ----*tau *h2
+                    2             64                                16
+
+                    3      5      4   4    3     4   2      4       69      4
+                 - ----*tau  + tau *h2  - ---*tau *h2  + tau *h2 - -----*tau
+                    16                     4                        128
+
+                      3   3      3   2    3      3       3      3    1     2   2
+                 + tau *h2  - tau *h2  + ----*tau *h2 - ----*tau  - ---*tau *h2
+                                          16             16          8
+
+                    1     2       15     2    3             3           9
+                 - ---*tau *h2 + ----*tau  - ----*tau*h2 + ----*tau + -----)
+                    2             64          16            16         256
+
+f_fusion(1, 1, 2, 2, h2, tau) / f_rhs;
+
+
+1
+
+{num = factorize(num(f_rhs)), den = den(f_rhs)};
+
+
+                       2
+{num={{4*h2*tau + 3*tau  + 6*tau + 3,1},
+
+                       2
+      {4*h2*tau + 3*tau  - 2*tau - 1,1},
+
+                     2
+      {4*h2*tau - tau  - 2*tau + 3,1},
+
+                     2
+      {4*h2*tau - tau  - 2*tau - 1,1}},
+
+            4
+ den=256*tau }
+
+solve(f_rhs, h2);
+
+
+       -1   1     2    1         1
+{h2=tau  *(---*tau  + ---*tau + ---),
+            4          2         4
+
+       -1   1     2    1         3
+ h2=tau  *(---*tau  + ---*tau - ---),
+            4          2         4
+
+       -1      3     2    1         1
+ h2=tau  *( - ---*tau  + ---*tau + ---),
+               4          2         4
+
+       -1      3     2    3         3
+ h2=tau  *( - ---*tau  - ---*tau - ---)}
+               4          2         4
+
+
+% Verify the explicit factorization of f_fusion(r0, s0, r1, s1, h2, tau)
+
+f_fusion(2, 1, 1, 1, h2, tau) / f_fusion_rhs(2, 1, 1, 1, h2, tau);
+
+
+1
+
+f_fusion(2, 2, 1, 2, h2, tau) / f_fusion_rhs(2, 2, 1, 2, h2, tau);
+
+
+1
+
+f_fusion(3, 2, 2, 3, h2, tau) / f_fusion_rhs(3, 2, 2, 3, h2, tau);
+
+
+1
+
+f_fusion(2, 1, 2, 4, h2, tau) / f_fusion_rhs(2, 1, 2, 4, h2, tau);
+
+
+1
+
+f_fusion(1, 1, 3, 3, h2, tau) / f_fusion_rhs(1, 1, 3, 3, h2, tau);
+
+
+1
+
+f_fusion(1, 2, 3, 3, h2, tau) / f_fusion_rhs(1, 2, 3, 3, h2, tau);
+
+
+1
+
+f_fusion(2, 2, 4, 2, h2, tau) / f_fusion_rhs(2, 2, 4, 2, h2, tau);
+
+
+1
+
+
+% the conformal weights of the minimal model for c=c(-p/q)
+
+f_mm45 := f_minimal_model(4, 5);
+
+
+              7683984   5    102773286   4    6674020353   3    10040565843   2
+f_mm45 := h*(---------*h  - -----------*h  + ------------*h  - -------------*h
+               15625           78125           6250000           31250000
+
+                 3747382947       90767061
+              + ------------*h - -----------)
+                 125000000        125000000
+
+factorize(f_mm45);
+
+
+      1
+{-----------,
+  125000000
+
+ {480249,1},
+
+ {80*h - 3,1},
+
+ {16*h - 7,1},
+
+ {10*h - 1,1},
+
+ {5*h - 3,1},
+
+ {2*h - 3,1},
+
+ {h,1}}
+
+solve(f_mm45, h);
+
+
+    7
+{h=----,
+    16
+
+    3
+ h=----,
+    80
+
+    3
+ h=---,
+    5
+
+    3
+ h=---,
+    2
+
+    1
+ h=----,
+    10
+
+ h=0}
+
+
+f_minimal_model_fact(2, 3);
+
+
+     2
+{ - ---,{h=0}}
+     3
+
+f_minimal_model_fact(2, 5);
+
+
+  36      -1
+{----,{h=----,h=0}}
+  25      5
+
+f_minimal_model_fact(2, 7);
+
+
+     1800      -2     -3
+{ - ------,{h=----,h=----,h=0}}
+     343       7      7
+
+f_minimal_model_fact(2, 9);
+
+
+  19600      -1     -2     -5
+{-------,{h=----,h=----,h=----,h=0}}
+   729       3      3      9
+
+f_minimal_model_fact(2, 11);
+
+
+     28576800
+{ - ----------,
+      161051
+
+     -4
+ {h=----,
+     11
+
+     -7
+  h=----,
+     11
+
+     -9
+  h=----,
+     11
+
+     -10
+  h=-----,
+     11
+
+  h=0}}
+
+
+f_minimal_model_fact(3, 4);
+
+
+     100      1      1
+{ - -----,{h=----,h=---,h=0}}
+     27       16     2
+
+f_minimal_model_fact(3, 5);
+
+
+  802816      3     1     -1
+{--------,{h=---,h=---,h=----,h=0}}
+  50625       4     5     20
+
+f_minimal_model_fact(3, 7);
+
+
+  50751078400
+{-------------,
+   85766121
+
+     5
+ {h=---,
+     4
+
+     4
+  h=---,
+     7
+
+     3
+  h=----,
+     28
+
+     -1
+  h=----,
+     7
+
+     -5
+  h=----,
+     28
+
+  h=0}}
+
+
+f_minimal_model_fact(4, 5);
+
+
+  7683984
+{---------,
+   15625
+
+     7
+ {h=----,
+     16
+
+     3
+  h=----,
+     80
+
+     3
+  h=---,
+     5
+
+     3
+  h=---,
+     2
+
+     1
+  h=----,
+     10
+
+  h=0}}
+
+
+% Verify explicit simplification of f_minimal_model_factor_lhs(p, q)
+
+f_minimal_model_factor_lhs(p, q, r, s, h);
+
+
+          -1  2        -1    2              2  -2  4    2  -2  2        -1    3
+ - 4*h*p*q  *s  - 4*h*p  *q*r  + 8*h*r*s + p *q  *s  - p *q  *s  - 4*p*q  *r*s
+
+        -1            -1  2      -1    3        -1    2      -1
+ + 2*p*q  *r*s + 2*p*q  *s  - 4*p  *q*r *s + 2*p  *q*r  + 2*p  *q*r*s
+
+    -2  2  4    -2  2  2      2  2    2            2
+ + p  *q *r  - p  *q *r  + 6*r *s  - r  - 4*r*s - s
+
+f_minimal_model_factor_rhs(p, q, r, w, h);
+
+
+          -1  2        -1    2              2  -2  4    2  -2  2        -1    3
+ - 4*h*p*q  *s  - 4*h*p  *q*r  + 8*h*r*s + p *q  *s  - p *q  *s  - 4*p*q  *r*s
+
+        -1            -1  2      -1    3        -1    2      -1
+ + 2*p*q  *r*s + 2*p*q  *s  - 4*p  *q*r *s + 2*p  *q*r  + 2*p  *q*r*s
+
+    -2  2  4    -2  2  2      2  2    2            2
+ + p  *q *r  - p  *q *r  + 6*r *s  - r  - 4*r*s - s
+
+f_minimal_model_factor_lhs(p, q, r, s, h) / f_minimal_model_factor_rhs(p, q, r, s, h);
+
+
+1
+
+
+% table of the conformal weights of the minimal model for c=c(-p/q)
+
+table_minimal_model(2, 3);
+
+
+[0  0]
+
+
+table_minimal_model(2, 5);
+
+
+[       1       1    ]
+[0   - ---   - ---  0]
+[       5       5    ]
+
+
+table_minimal_model(2, 7);
+
+
+[       2       3       3       2    ]
+[0   - ---   - ---   - ---   - ---  0]
+[       7       7       7       7    ]
+
+
+table_minimal_model(2, 9);
+
+
+[       1       5       2       2       5       1    ]
+[0   - ---   - ---   - ---   - ---   - ---   - ---  0]
+[       3       9       3       3       9       3    ]
+
+
+table_minimal_model(2, 11);
+
+
+[       4        7        9        10       10       9        7        4     ]
+[0   - ----   - ----   - ----   - ----   - ----   - ----   - ----   - ----  0]
+[       11       11       11       11       11       11       11       11    ]
+
+
+table_minimal_model(2, 13);
+
+
+           5       9       12      14      15      15      14      12      9
+mat((0, - ----, - ----, - ----, - ----, - ----, - ----, - ----, - ----, - ----,
+           13      13      13      13      13      13      13      13      13
+
+         5
+      - ----,0))
+         13
+
+
+
+table_minimal_model(3, 4);
+
+
+[      1     1 ]
+[ 0   ----  ---]
+[      16    2 ]
+[              ]
+[ 1    1       ]
+[---  ----   0 ]
+[ 2    16      ]
+
+
+table_minimal_model(3, 5);
+
+
+[         1       1      3 ]
+[ 0    - ----    ---    ---]
+[         20      5      4 ]
+[                          ]
+[ 3      1         1       ]
+[---    ---     - ----   0 ]
+[ 4      5         20      ]
+
+
+table_minimal_model(3, 7);
+
+
+[         5        1     3        4      5 ]
+[ 0    - ----   - ---   ----     ---    ---]
+[         28       7     28       7      4 ]
+[                                          ]
+[ 5      4       3         1       5       ]
+[---    ---     ----    - ---   - ----   0 ]
+[ 4      7       28        7       28      ]
+
+
+table_minimal_model(3, 8);
+
+
+[         7        1       3      1       25      3 ]
+[ 0    - ----   - ---   - ----   ---     ----    ---]
+[         32       4       32     4       32      2 ]
+[                                                   ]
+[ 3     25       1         3        1       7       ]
+[---   ----     ---     - ----   - ---   - ----   0 ]
+[ 2     32       4         32       4       32      ]
+
+
+table_minimal_model(3, 10);
+
+
+[       11       2       3       1     1       3       49      ]
+[0   - ----   - ---   - ---   - ---   ---     ---     ----    2]
+[       40       5       8       5     8       5       40      ]
+[                                                              ]
+[     49       3       1         1       3       2       11    ]
+[2   ----     ---     ---     - ---   - ---   - ---   - ----  0]
+[     40       5       8         5       8       5       40    ]
+
+
+table_minimal_model(3, 11);
+
+
+           13      5       21      4       5    3    35   16   9
+mat((0, - ----, - ----, - ----, - ----, - ----,----,----,----,---),
+           44      11      44      11      44   11   44   11   4
+
+      9   16   35   3       5       4       21      5       13
+    (---,----,----,----, - ----, - ----, - ----, - ----, - ----,0))
+      4   11   44   11      44      11      44      11      44
+
+
+table_minimal_model(3, 13);
+
+
+           17      7       33      8       25      3    7    8    63   25   11
+mat((0, - ----, - ----, - ----, - ----, - ----, - ----,----,----,----,----,----)
+           52      13      52      13      52      13   52   13   52   13   4
+
+     ,
+
+      11   25   63   8    7       3       25      8       33      7       17
+    (----,----,----,----,----, - ----, - ----, - ----, - ----, - ----, - ----,0)
+      4    13   52   13   52      13      52      13      52      13      52
+
+)
+
+
+
+table_minimal_model(4, 5);
+
+
+[       1     3     3  ]
+[ 0    ----  ---   --- ]
+[       10    5     2  ]
+[                      ]
+[ 7     3     3     7  ]
+[----  ----  ----  ----]
+[ 16    80    80    16 ]
+[                      ]
+[ 3     3     1        ]
+[---   ---   ----   0  ]
+[ 2     5     10       ]
+
+
+table_minimal_model(4, 7);
+
+
+[          1       1         9        10      5  ]
+[ 0     - ----    ---       ----     ----    --- ]
+[          14      7         14       7       2  ]
+[                                                ]
+[ 13     27          5         5      27      13 ]
+[----   -----    - -----   - -----   -----   ----]
+[ 16     112        112       112     112     16 ]
+[                                                ]
+[ 5      10        9         1          1        ]
+[---    ----      ----      ---      - ----   0  ]
+[ 2      7         14        7          14       ]
+
+
+table_minimal_model(4, 9);
+
+
+[          1       1      1        2       25      7      7  ]
+[ 0     - ---   - ---    ---      ---     ----    ---    --- ]
+[          6       9      6        3       18      3      2  ]
+[                                                            ]
+[ 19     25     11         7        7     11       25     19 ]
+[----   ----   -----    - ----   - ----  -----    ----   ----]
+[ 16     48     144        48       48    144      48     16 ]
+[                                                            ]
+[ 7      7       25       2        1         1       1       ]
+[---    ---     ----     ---      ---     - ---   - ---   0  ]
+[ 2      3       18       3        6         9       6       ]
+
+
+table_minimal_model(4, 11);
+
+
+           5       3       3    2    15   15   49   36   9
+mat((0, - ----, - ----, - ----,----,----,----,----,----,---),
+           22      11      22   11   22   11   22   11   2
+
+      25   147   51       13       45       45       13    51    147   25
+    (----,-----,-----, - -----, - -----, - -----, - -----,-----,-----,----),
+      16   176   176      176      176      176      176   176   176   16
+
+      9   36   49   15   15   2       3       3       5
+    (---,----,----,----,----,----, - ----, - ----, - ----,0))
+      2   11   22   11   22   11      22      11      22
+
+
+table_minimal_model(4, 13);
+
+
+           7       5       9       2    5    9    35   28   81   55   11
+mat((0, - ----, - ----, - ----, - ----,----,----,----,----,----,----,----),
+           26      13      26      13   26   13   26   13   26   13   2
+
+      31   243   115   19       45       77       77       45    19    115
+    (----,-----,-----,-----, - -----, - -----, - -----, - -----,-----,-----,
+      16   208   208   208      208      208      208      208   208   208
+
+      243   31
+     -----,----),
+      208   16
+
+      11   55   81   28   35   9    5       2       9       5       7
+    (----,----,----,----,----,----,----, - ----, - ----, - ----, - ----,0))
+      2    13   26   13   26   13   26      13      26      13      26
+
+
+
+table_minimal_model(5, 6);
+
+
+[      1     2     13      ]
+[ 0   ---   ---   ----   3 ]
+[      8     3     8       ]
+[                          ]
+[ 2    1     1     21    7 ]
+[---  ----  ----  ----  ---]
+[ 5    40    15    40    5 ]
+[                          ]
+[ 7    21    1     1     2 ]
+[---  ----  ----  ----  ---]
+[ 5    40    15    40    5 ]
+[                          ]
+[      13    2     1       ]
+[ 3   ----  ---   ---    0 ]
+[      8     3     8       ]
+
+
+table_minimal_model(5, 7);
+
+
+[       1        3         33      16     15 ]
+[ 0    ----     ---       ----    ----   ----]
+[       28       7         28      7      4  ]
+[                                            ]
+[ 11    3          3       8       117    9  ]
+[----  ----    - -----    ----    -----  --- ]
+[ 20    35        140      35      140    5  ]
+[                                            ]
+[ 9     117      8           3     3      11 ]
+[---   -----    ----     - -----  ----   ----]
+[ 5     140      35         140    35     20 ]
+[                                            ]
+[ 15    16       33        3       1         ]
+[----  ----     ----      ---     ----    0  ]
+[ 4     7        28        7       28        ]
+
+
+table_minimal_model(5, 8);
+
+
+[          1       1      27       7       95      9  ]
+[ 0     - ----    ---    ----     ---     ----    --- ]
+[          32      4      32       4       32      2  ]
+[                                                     ]
+[ 7      27         1      7      9        187     11 ]
+[----   -----    - ----  -----   ----     -----   ----]
+[ 10     160        20    160     20       160     5  ]
+[                                                     ]
+[ 11     187      9        7        1      27      7  ]
+[----   -----    ----    -----   - ----   -----   ----]
+[ 5      160      20      160       20     160     10 ]
+[                                                     ]
+[ 9      95        7      27       1         1        ]
+[---    ----      ---    ----     ---     - ----   0  ]
+[ 2      32        4      32       4         32       ]
+
+
+table_minimal_model(5, 9);
+
+
+[          1       1        7         4        85       11      21 ]
+[ 0     - ----    ---      ----      ---      ----     ----    ----]
+[          12      9        12        3        36       3       4  ]
+[                                                                  ]
+[ 17     4           7        1      11        32       91      13 ]
+[----   ----     - -----   - ----   ----      ----     ----    ----]
+[ 20     15         180       15     60        45       60      5  ]
+[                                                                  ]
+[ 13     91        32       11         1         7      4       17 ]
+[----   ----      ----     ----     - ----   - -----   ----    ----]
+[ 5      60        45       60         15       180     15      20 ]
+[                                                                  ]
+[ 21     11        85        4       7         1          1        ]
+[----   ----      ----      ---     ----      ---      - ----   0  ]
+[ 4      3         36        3       12        9          12       ]
+
+
+table_minimal_model(5, 11);
+
+
+           7       1    9    8    65   27   161   56   27
+mat((0, - ----, - ----,----,----,----,----,-----,----,----),
+           44      11   44   11   44   11   44    11   4
+
+      23   27   13       8       27    7    133   72   493   17
+    (----,----,-----, - ----, - -----,----,-----,----,-----,----),
+      20   55   220      55      220   55   220   55   220   5
+
+      17   493   72   133   7       27       8    13    27   23
+    (----,-----,----,-----,----, - -----, - ----,-----,----,----),
+      5    220   55   220   55      220      55   220   55   20
+
+      27   56   161   27   65   8    9       1       7
+    (----,----,-----,----,----,----,----, - ----, - ----,0))
+      4    11   44    11   44   11   44      11      44
+
+
+table_minimal_model(5, 12);
+
+
+           3       1   1    1   55     49   13   93   15
+mat((0, - ----, - ---,----,---,----,2,----,----,----,----),
+           16      6   16   2   48     16   3    16   2
+
+      13   49   2       11      1      13    3    69   49   209   19
+    (----,----,----, - ----, - ---, - -----,----,----,----,-----,----),
+      10   80   15      80      5      240   10   80   30   80    5
+
+      19   209   49   69   3       13       1      11   2    49   13
+    (----,-----,----,----,----, - -----, - ---, - ----,----,----,----),
+      5    80    30   80   10      240      5      80   15   80   10
+
+      15   93   13   49     55   1   1       1      3
+    (----,----,----,----,2,----,---,----, - ---, - ----,0))
+      2    16   3    16     48   2   16      6      16
+
+
+table_minimal_model(5, 13);
+
+
+           11      3       3    4    45   21   133   48   261   85   33
+mat((0, - ----, - ----, - ----,----,----,----,-----,----,-----,----,----),
+           52      13      52   13   52   13   52    13   52    13   4
+
+      29   48   57       7       63       12   17    33   297   128   777   21
+    (----,----,-----, - ----, - -----, - ----,-----,----,-----,-----,-----,----)
+      20   65   260      65      260      65   260   65   260   65    260   5
+
+     ,
+
+      21   777   128   297   33   17       12      63       7    57    48   29
+    (----,-----,-----,-----,----,-----, - ----, - -----, - ----,-----,----,----)
+      5    260   65    260   65   260      65      260      65   260   65   20
+
+     ,
+
+      33   85   261   48   133   21   45   4       3       3       11
+    (----,----,-----,----,-----,----,----,----, - ----, - ----, - ----,0))
+      4    13   52    13   52    13   52   13      52      13      52
+
+
+
+;
+
+end;
+
+3: 
